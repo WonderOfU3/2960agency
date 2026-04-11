@@ -1,0 +1,186 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════
+   CUSTOM FONTS
+═══════════════════════════════════════ */
+
+@font-face {
+  font-family: 'TAN Buster';
+  src: url('/fonts/TAN-BUSTER-Regular.woff2') format('woff2'),
+       url('/fonts/TAN-BUSTER-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DM Sans';
+  src: url('/fonts/DMSans-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ═══════════════════════════════════════
+   GLOBAL RESET
+═══════════════════════════════════════ */
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #0a0a08;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(217, 79, 42, 0.2);
+  color: #fff;
+}
+
+/* ═══════════════════════════════════════
+   FILM GRAIN OVERLAY
+═══════════════════════════════════════ */
+
+.grain-overlay {
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════
+   NAVBAR
+═══════════════════════════════════════ */
+
+.nav-responsive {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+@media (min-width: 640px) {
+  .nav-responsive {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+@media (min-width: 1024px) {
+  .nav-responsive {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
+/* ═══════════════════════════════════════
+   FORM SYSTEM
+═══════════════════════════════════════ */
+
+.form-wrapper {
+  width: 100%;
+  max-width: calc(100vw - 32px);
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: 32px;
+  padding-bottom: 80px;
+}
+@media (min-width: 640px) {
+  .form-wrapper {
+    max-width: min(90vw, 980px);
+    padding-top: 56px;
+  }
+}
+@media (min-width: 1100px) {
+  .form-wrapper {
+    max-width: 980px;
+  }
+}
+
+.form-card {
+  border-radius: 28px;
+  padding: 20px;
+}
+@media (min-width: 640px) {
+  .form-card {
+    padding: 32px;
+  }
+}
+
+.form-title {
+  font-size: 20px;
+}
+@media (min-width: 640px) {
+  .form-title {
+    font-size: 28px;
+  }
+}
+
+.form-subtitle {
+  font-size: 13px;
+}
+@media (min-width: 640px) {
+  .form-subtitle {
+    font-size: 15px;
+  }
+}
+
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.form-grid-2 {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 540px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+select option {
+  background: #1a1a18;
+  color: #fff;
+}
+
+/* ═══════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════ */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes step-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in  { animation: fade-in  0.35s ease-out both; }
+.animate-step-in  { animation: step-in  0.30s ease-out both; }
+.animate-spin     { animation: spin     0.7s linear infinite; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #0a0a08; }
+::-webkit-scrollbar-thumb { background: #2a2825; border-radius: 2px; }
