@@ -198,9 +198,48 @@ export default function TarifsPage() {
     const { locale } = useLanguage()
     const fr = locale === 'fr'
     const [hovered, setHovered] = useState<string | null>(null)
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
+
+    // Calculate yearly price (20% discount)
+    const getPrice = (monthlyPrice: string) => {
+        const monthly = parseFloat(monthlyPrice)
+        if (billingCycle === 'yearly') {
+            const yearly = Math.round(monthly * 12 * 0.8) // 20% discount
+            return yearly.toString()
+        }
+        return monthlyPrice
+    }
+
+    const getPriceUnit = () => {
+        if (billingCycle === 'yearly') {
+            return fr ? '€/an' : '€/year'
+        }
+        return fr ? '€/mois' : '€/month'
+    }
+
+    const getMonthlyEquivalent = (monthlyPrice: string) => {
+        if (billingCycle === 'yearly') {
+            const monthly = parseFloat(monthlyPrice)
+            const yearlyMonthly = Math.round(monthly * 0.8)
+            return fr ? `soit ${yearlyMonthly}€/mois` : `or €${yearlyMonthly}/month`
+        }
+        return null
+    }
 
     return (
         <div style={{ background: '#0c0b09', minHeight: '100vh' }}>
+            <style jsx>{`
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-5px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `}</style>
             <Navbar />
 
             {/* Top glow */}
@@ -243,6 +282,135 @@ export default function TarifsPage() {
                                 ? 'Commencez gratuitement. Montez en puissance quand vous en avez besoin.'
                                 : 'Start for free. Scale up when you need to.'}
                         </p>
+                    </div>
+
+                    {/* Billing Toggle */}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 16,
+                        marginBottom: 48,
+                    }}>
+                        {/* Toggle Container */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 20,
+                            background: 'rgba(255,255,255,0.02)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: 999,
+                            padding: '8px 12px',
+                            boxShadow: billingCycle === 'yearly' ? '0 0 30px rgba(217,79,42,0.15)' : 'none',
+                            transition: 'box-shadow 0.3s',
+                        }}>
+                        <button
+                            onClick={() => setBillingCycle('monthly')}
+                            className="font-dm"
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: billingCycle === 'monthly' ? '#fff' : 'rgba(255,255,255,0.4)',
+                                fontSize: 15,
+                                fontWeight: billingCycle === 'monthly' ? 600 : 500,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                padding: '8px 12px',
+                            }}
+                        >
+                            {fr ? 'Mensuel' : 'Monthly'}
+                        </button>
+
+                        {/* Toggle Switch */}
+                        <div
+                            onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
+                            style={{
+                                position: 'relative',
+                                width: 56,
+                                height: 30,
+                                background: billingCycle === 'yearly' ? '#D94F2A' : 'rgba(255,255,255,0.1)',
+                                borderRadius: 999,
+                                cursor: 'pointer',
+                                transition: 'background 0.3s',
+                                border: '1px solid ' + (billingCycle === 'yearly' ? '#D94F2A' : 'rgba(255,255,255,0.15)'),
+                            }}
+                        >
+                            <div style={{
+                                position: 'absolute',
+                                top: 3,
+                                left: billingCycle === 'yearly' ? 28 : 3,
+                                width: 22,
+                                height: 22,
+                                background: '#fff',
+                                borderRadius: '50%',
+                                transition: 'left 0.3s',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            }} />
+                        </div>
+
+                        <button
+                            onClick={() => setBillingCycle('yearly')}
+                            className="font-dm"
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: billingCycle === 'yearly' ? '#fff' : 'rgba(255,255,255,0.4)',
+                                fontSize: 15,
+                                fontWeight: billingCycle === 'yearly' ? 600 : 500,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                padding: '8px 12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                            }}
+                        >
+                            {fr ? 'Annuel' : 'Yearly'}
+                            <span style={{
+                                background: 'rgba(217,79,42,0.15)',
+                                border: '1px solid rgba(217,79,42,0.3)',
+                                color: '#D94F2A',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                letterSpacing: '0.05em',
+                                textTransform: 'uppercase',
+                                padding: '4px 10px',
+                                borderRadius: 999,
+                                opacity: billingCycle === 'yearly' ? 1 : 0.6,
+                                transition: 'opacity 0.2s',
+                            }}>
+                                {fr ? '−20%' : '−20%'}
+                            </span>
+                        </button>
+                        </div>
+
+                        {/* Savings indicator */}
+                        {billingCycle === 'yearly' && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                padding: '6px 16px',
+                                background: 'rgba(217,79,42,0.08)',
+                                border: '1px solid rgba(217,79,42,0.15)',
+                                borderRadius: 999,
+                                animation: 'fadeIn 0.3s ease-out',
+                            }}>
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                    <path d="M7 1L9 5L13 5.5L10 8.5L10.5 13L7 10.5L3.5 13L4 8.5L1 5.5L5 5L7 1Z" fill="rgba(217,79,42,0.3)" stroke="#D94F2A" strokeWidth="1.2" strokeLinejoin="round"/>
+                                </svg>
+                                <span className="font-dm" style={{
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    color: '#D94F2A',
+                                    letterSpacing: '0.02em',
+                                }}>
+                                    {fr ? 'Économise 2 mois en payant annuellement' : 'Save 2 months by paying yearly'}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Plans grid */}
@@ -306,14 +474,23 @@ export default function TarifsPage() {
                   <span className="font-dm text-white" style={{
                       fontSize: 48, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1,
                   }}>
-                    {plan.price}
+                    {getPrice(plan.price)}
                   </span>
                                     <span className="font-dm" style={{
                                         fontSize: 14, color: 'rgba(255,255,255,0.4)', marginLeft: 4,
                                     }}>
-                    {fr ? plan.unit : plan.unitEn}
+                    {getPriceUnit()}
                   </span>
                                 </div>
+
+                                {getMonthlyEquivalent(plan.price) && (
+                                    <p className="font-dm" style={{
+                                        fontSize: 12, color: 'rgba(217,79,42,0.6)',
+                                        marginBottom: 4, lineHeight: 1.4,
+                                    }}>
+                                        {getMonthlyEquivalent(plan.price)}
+                                    </p>
+                                )}
 
                                 <p className="font-dm" style={{
                                     fontSize: 13, color: 'rgba(255,255,255,0.4)',

@@ -40,6 +40,13 @@ export const COLLAB_DISTANCE: Opt[] = [
   { value: 'outside',  label: l('Même en dehors de Paris', 'Outside Paris too') },
 ]
 
+export const COLLAB_AVAILABILITY: Opt[] = [
+  { value: 'weekdays',        label: l('En semaine', 'Weekdays') },
+  { value: 'weekdays_lunch',  label: l('En semaine le midi', 'Weekdays at lunch') },
+  { value: 'weekdays_after5', label: l('En semaine après 17h', 'Weekdays after 5pm') },
+  { value: 'weekend',         label: l('Le weekend', 'Weekends') },
+]
+
 /* ─── Creator: Food ─── */
 export const RESTAURANT_TYPES: Opt[] = [
   { value: 'sushi',        label: l('Sushi / Japonais',      'Sushi / Japanese') },

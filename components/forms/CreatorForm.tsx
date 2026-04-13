@@ -9,7 +9,7 @@ import {
   type FileEntry,
 } from './ui'
 import {
-  SPOKEN_LANGUAGES, CONTENT_LANGUAGES, ARRONDISSEMENTS, COLLAB_DISTANCE,
+  SPOKEN_LANGUAGES, CONTENT_LANGUAGES, ARRONDISSEMENTS, COLLAB_DISTANCE, COLLAB_AVAILABILITY,
   RESTAURANT_TYPES, COFFEE_ANSWER, COFFEE_LIKES, PHOTOGENIC_ANSWER, WHAT_MATTERS,
   PLACE_TYPE, COLLAB_PREFERENCE, PLATFORMS, PREVIOUS_COLLABS, POSTED_CONTENT,
   CREATOR_NICHE, AUDIENCE_SIZE,
@@ -33,6 +33,7 @@ const T: Record<Locale, Record<string, string>> = {
     arrondissements: "Arrondissements parisiens préférés",
     otherAreas: "Autres quartiers que tu aimes",
     collabDistance: "Jusqu'où irais-tu pour une collab ?",
+    collabAvailability: "Disponibilités pour les collabs",
     phAreas: "Ex : Boulogne, Saint-Denis, Vincennes…",
     restaurantTypes: "Types de restaurants que tu aimes",
     otherCuisines: "Autres cuisines que tu aimes",
@@ -88,6 +89,7 @@ const T: Record<Locale, Record<string, string>> = {
     arrondissements: "Favorite Paris arrondissements",
     otherAreas: "Other areas you like",
     collabDistance: "How far would you go for a collab?",
+    collabAvailability: "Availability for collabs",
     phAreas: "e.g. Boulogne, Saint-Denis…",
     restaurantTypes: "Restaurant types you like", otherCuisines: "Other cuisines you like",
     dietaryRestrictions: "Do you have any dietary restrictions?",
@@ -132,7 +134,7 @@ interface State {
   firstName: string; lastName: string; email: string; phone: string
   tiktok: string; instagram: string; city: string
   languages: string[]; contentLang: string[]
-  arrondissements: string[]; otherAreas: string; collabDistance: string
+  arrondissements: string[]; otherAreas: string; collabDistance: string; collabAvailability: string[]
   restaurantTypes: string[]; otherCuisines: string; dietaryRestrictions: string
   coffeeShops: string; coffeeLikes: string[]
   photogenic: string; whatMatters: string[]
@@ -147,7 +149,7 @@ const INIT: State = {
   firstName: '', lastName: '', email: '', phone: '',
   tiktok: '', instagram: '', city: '',
   languages: [], contentLang: [],
-  arrondissements: [], otherAreas: '', collabDistance: '',
+  arrondissements: [], otherAreas: '', collabDistance: '', collabAvailability: [],
   restaurantTypes: [], otherCuisines: '', dietaryRestrictions: '',
   coffeeShops: '', coffeeLikes: [],
   photogenic: '', whatMatters: [],
@@ -227,6 +229,7 @@ export default function CreatorForm() {
     if (s === 1) {
       if (form.arrondissements.length === 0) e.arrondissements = t.req
       if (!form.collabDistance) e.collabDistance = t.req
+      if (form.collabAvailability.length === 0) e.collabAvailability = t.req
     }
     if (s === 2) {
       if (form.restaurantTypes.length === 0) e.restaurantTypes = t.req
@@ -274,7 +277,7 @@ export default function CreatorForm() {
         tiktok: form.tiktok.trim(), instagram: form.instagram.trim() || null,
         city: form.city.trim(), languages: form.languages, contentLang: form.contentLang,
         arrondissements: form.arrondissements, otherAreas: form.otherAreas.trim() || null,
-        collabDistance: form.collabDistance,
+        collabDistance: form.collabDistance, collabAvailability: form.collabAvailability,
         restaurantTypes: form.restaurantTypes, otherCuisines: form.otherCuisines.trim() || null,
         dietaryRestrictions: form.dietaryRestrictions.trim() || null,
         coffeeShops: form.coffeeShops, coffeeLikes: form.coffeeLikes,
@@ -339,6 +342,7 @@ export default function CreatorForm() {
               <PillSelect label={t.arrondissements} options={ARRONDISSEMENTS} selected={form.arrondissements} onToggle={v => toggle('arrondissements', v)} error={errors.arrondissements} required locale={locale} compact />
               <TextField label={t.otherAreas} value={form.otherAreas} onChange={v => set('otherAreas', v)} placeholder={t.phAreas} locale={locale} />
               <RadioCards label={t.collabDistance} options={COLLAB_DISTANCE} selected={form.collabDistance} onChange={v => set('collabDistance', v)} error={errors.collabDistance} required locale={locale} />
+              <PillSelect label={t.collabAvailability} options={COLLAB_AVAILABILITY} selected={form.collabAvailability} onToggle={v => toggle('collabAvailability', v)} error={errors.collabAvailability} required locale={locale} />
             </div>
         )}
 

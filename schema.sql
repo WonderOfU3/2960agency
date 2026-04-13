@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS creator_applications (
   favorite_arrondissements TEXT[]  NOT NULL DEFAULT '{}',
   other_areas           TEXT,
   travel_distance       TEXT NOT NULL,
+  collab_availability   TEXT[]  NOT NULL DEFAULT '{}',
 
   -- Section 3: Food preferences
   restaurant_types      TEXT[]  NOT NULL,
