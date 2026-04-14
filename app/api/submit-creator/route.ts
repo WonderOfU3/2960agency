@@ -16,7 +16,7 @@ const schema = z.object({
   arrondissements:     z.array(z.string()).default([]),
   otherAreas:          z.string().nullable().optional(),
   collabDistance:      z.string().min(1),
-  collabAvailability:  z.array(z.string()).min(1),
+  collabAvailability:  z.array(z.string()).default([]),
   restaurantTypes:     z.array(z.string()).min(1),
   otherCuisines:       z.string().nullable().optional(),
   coffeeShops:         z.string().min(1),
