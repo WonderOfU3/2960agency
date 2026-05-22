@@ -3,6 +3,7 @@
 import { useRef, useEffect, useLayoutEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '@/context/LanguageContext'
+import { useTheme } from '@/context/ThemeContext'
 
 /* ── 3D geometry ─────────────────────────────────────────── */
 interface Pt3 { x: number; y: number; z: number }
@@ -87,12 +88,19 @@ const COORDS: [number, number][] = [
 ]
 
 const ARCS: [number, number][] = [
-  [0,1],[0,2],[0,5],[0,9],[0,4],[1,11],[2,3],[3,5],[4,6],[5,6],[7,4],[8,2],[9,10],[10,3],
-  [12,14],[12,15],[12,16],[13,18],[14,16],[15,17],[16,19],[12,19],
-  [20,21],[20,26],[22,23],[23,24],[24,25],[25,20],
-  [0,12],[1,12],[12,20],[13,20],[1,27],[27,22],[0,41],[22,34],[34,36],[20,34],
-  [12,37],[15,37],[37,38],[38,39],[39,40],[29,27],[27,28],[29,3],[32,27],[31,0],[30,1],[33,1],[34,35],
-  [0,20],[1,22],[12,27],[13,34],[38,1],[27,20],[30,27],[41,20],[39,0],[14,1],
+  // Europe internal
+  [0,1],[0,2],[0,5],[1,4],[2,3],
+  // US internal
+  [12,14],[13,18],[12,16],
+  // Asia internal
+  [20,21],[22,23],[24,25],
+  // Intercontinental — the main routes
+  [0,12],[1,12],    // Europe → US
+  [0,20],[1,27],    // Europe → Asia/Middle East
+  [12,37],          // US → South America
+  [27,22],          // Middle East → Asia
+  [20,34],          // Asia → Australia
+  [31,0],[29,3],    // Africa → Europe
 ]
 
 /* ── Photo cards ─────────────────────────────────────────── */
@@ -123,9 +131,9 @@ interface Cfg {
 }
 
 const CFGS: Record<BP, Cfg> = {
-  desktop: { globeR: 380, landDots: 1800, oceanDots: 400, pinN: 42, cardN: 12, end: '+=400%', tilt: -0.35, cardScale: 1,    posScale: 1    },
-  tablet:  { globeR: 290, landDots: 1200, oceanDots: 300, pinN: 28, cardN: 8,  end: '+=350%', tilt: -0.30, cardScale: 0.75, posScale: 0.80 },
-  mobile:  { globeR: 160, landDots: 700,  oceanDots: 200, pinN: 14, cardN: 12, end: '+=300%', tilt: -0.25, cardScale: 0.55, posScale: 0.60 },
+  desktop: { globeR: 380, landDots: 2800, oceanDots: 600, pinN: 42, cardN: 12, end: '+=400%', tilt: -0.35, cardScale: 1,    posScale: 1    },
+  tablet:  { globeR: 290, landDots: 1800, oceanDots: 400, pinN: 28, cardN: 8,  end: '+=350%', tilt: -0.30, cardScale: 0.75, posScale: 0.80 },
+  mobile:  { globeR: 160, landDots: 1000, oceanDots: 250, pinN: 14, cardN: 12, end: '+=300%', tilt: -0.25, cardScale: 0.55, posScale: 0.60 },
 }
 
 function getBP(): BP {
@@ -142,6 +150,7 @@ export default function Hero() {
   const pinPow     = useRef({ v: 1 })
   const gScale     = useRef({ v: 1 })
   const { t } = useLanguage()
+  const { c } = useTheme()
   const [bp, setBp] = useState<BP>(getBP)
   const cfg  = CFGS[bp]
   const cards = useMemo(() => ALL_CARDS.slice(0, cfg.cardN), [cfg.cardN])
@@ -152,156 +161,112 @@ export default function Hero() {
     return () => window.removeEventListener('resize', fn)
   }, [])
 
-  /* ── Globe canvas ───────────────────────────────────────── */
+  /* ── Globe (cobe WebGL) ─────────────────────────────────── */
   useEffect(() => {
     const cvs = canvasRef.current
     if (!cvs) return
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const ctx = cvs.getContext('2d')!
+    let destroyed = false
+    let globeInstance: { destroy: () => void } | null = null
+    let retryCount = 0
 
-    const dpr  = Math.min(window.devicePixelRatio || 1, 2)
-    const dots = continentDots(cfg.landDots, cfg.oceanDots)
-    const pins: Pin[] = COORDS.slice(0, cfg.pinN).map(([lat, lon], i) => ({
-      point: ll(lat, lon), phase: i * 0.71,
-    }))
+    function initGlobe() {
+      if (destroyed || !cvs) return
 
-    let cw = 0, ch = 0, animId = 0, elapsed = 0, autoA = 0, lastT = 0
-
-    function resize() {
-      const r = cvs!.getBoundingClientRect()
-      cw = r.width; ch = r.height
-      cvs!.width  = cw * dpr
-      cvs!.height = ch * dpr
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0)
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    function render() {
-      const cx = cw / 2, cy = ch / 2
-      const R    = cfg.globeR * gScale.current.v
-      const tilt = cfg.tilt
-      const rot  = autoA + scrollProg.current * Math.PI * 0.6
-
-      ctx.clearRect(0, 0, cw, ch)
-      ctx.globalAlpha = globeAlpha.current.v
-
-      /* atmosphere glow */
-      const glowR = Math.min(R * 1.4, cw / 2)
-      const glow  = ctx.createRadialGradient(cx, cy, R * 0.1, cx, cy, glowR)
-      glow.addColorStop(0,    'rgba(217,79,42,0.14)')
-      glow.addColorStop(0.30, 'rgba(217,79,42,0.06)')
-      glow.addColorStop(0.60, 'rgba(217,79,42,0.02)')
-      glow.addColorStop(1,    'transparent')
-      ctx.fillStyle = glow
-      ctx.beginPath(); ctx.arc(cx, cy, glowR, 0, Math.PI * 2); ctx.fill()
-
-      /* inner surface */
-      const inner = ctx.createRadialGradient(cx, cy, 0, cx, cy, R)
-      inner.addColorStop(0,   'rgba(255,255,255,0.012)')
-      inner.addColorStop(0.7, 'rgba(255,255,255,0.008)')
-      inner.addColorStop(1,   'transparent')
-      ctx.fillStyle = inner
-      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill()
-
-      /* edge ring */
-      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(255,255,255,0.12)'
-      ctx.lineWidth = 1.2; ctx.stroke()
-
-      /* dots — alpha-bucketed */
-      const landCount = cfg.landDots
-      const buckets   = new Map<string, [number, number, number][]>()
-      for (let di = 0; di < dots.length; di++) {
-        const d      = dots[di]
-        const p      = rX(rY(d, rot), tilt)
-        if (p.z < -0.05) continue
-        const px = cx + p.x * R, py = cy + p.y * R
-        const isLand = di < landCount
-        const a = isLand
-            ? Math.max(0, p.z * 0.6 + 0.08)
-            : Math.max(0, p.z * 0.25 + 0.02)
-        const k  = (Math.round(a * 20) / 20).toFixed(2)
-        const sz = isLand
-            ? Math.max(0.5, 0.9 + p.z * 0.7)
-            : Math.max(0.3, 0.4 + p.z * 0.3)
-        if (!buckets.has(k)) buckets.set(k, [])
-        buckets.get(k)!.push([px, py, sz])
-      }
-      for (const [a, pts] of buckets) {
-        ctx.fillStyle = `rgba(255,255,255,${a})`
-        ctx.beginPath()
-        for (const [x, y, s] of pts) { ctx.moveTo(x + s, y); ctx.arc(x, y, s, 0, Math.PI * 2) }
-        ctx.fill()
-      }
-
-      /* network arcs */
-      for (const [ai, bi] of ARCS) {
-        if (ai >= pins.length || bi >= pins.length) continue
-        const pa = rX(rY(pins[ai].point, rot), tilt)
-        const pb = rX(rY(pins[bi].point, rot), tilt)
-        if (pa.z < 0.15 || pb.z < 0.15) continue
-        const raw = {
-          x: (pins[ai].point.x + pins[bi].point.x) / 2,
-          y: (pins[ai].point.y + pins[bi].point.y) / 2,
-          z: (pins[ai].point.z + pins[bi].point.z) / 2,
+      // Wait until canvas has actual dimensions
+      const width = cvs.offsetWidth
+      if (width < 50) {
+        if (retryCount < 20) {
+          retryCount++
+          setTimeout(initGlobe, 150)
         }
-        const len  = Math.sqrt(raw.x ** 2 + raw.y ** 2 + raw.z ** 2) || 1
-        const lift = 1.2
-        const mid  = rX(rY({ x: raw.x/len*lift, y: raw.y/len*lift, z: raw.z/len*lift }, rot), tilt)
-        if (mid.z < 0) continue
-        ctx.beginPath()
-        ctx.moveTo(cx + pa.x * R, cy + pa.y * R)
-        ctx.quadraticCurveTo(cx + mid.x * R * lift, cy + mid.y * R * lift, cx + pb.x * R, cy + pb.y * R)
-        ctx.strokeStyle = `rgba(217,79,42,${Math.min(pa.z, pb.z) * 0.35})`
-        ctx.lineWidth = 1; ctx.stroke()
+        return
       }
 
-      /* pins */
-      const pw = pinPow.current.v
-      for (const pin of pins) {
-        const p = rX(rY(pin.point, rot), tilt)
-        if (p.z < 0.1) continue
-        const px = cx + p.x * R, py = cy + p.y * R, al = p.z
+      import('cobe').then((mod) => {
+        if (destroyed) return
+        const createGlobe = mod.default
+        let phi = 0
+        const isLt = c.isLight
 
-        /* outer glow */
-        const gr = 20 * al * pw
-        const g  = ctx.createRadialGradient(px, py, 0, px, py, gr)
-        g.addColorStop(0,   `rgba(217,79,42,${al * 0.7 * pw})`)
-        g.addColorStop(0.5, `rgba(217,79,42,${al * 0.2 * pw})`)
-        g.addColorStop(1,   'rgba(217,79,42,0)')
-        ctx.beginPath(); ctx.arc(px, py, gr, 0, Math.PI * 2)
-        ctx.fillStyle = g; ctx.fill()
+        const coords = COORDS.slice(0, cfg.pinN)
 
-        /* pulse dot */
-        const pulse = 1 + Math.sin(elapsed * 2.5 + pin.phase) * 0.18
-        ctx.beginPath(); ctx.arc(px, py, 4 * pulse * al * Math.min(pw, 1.2), 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(217,79,42,${al})`; ctx.fill()
+        const markers = coords.map(([lat, lon]) => ({
+          location: [lat, lon] as [number, number],
+          size: 0.015,
+        }))
 
-        /* bright center */
-        ctx.beginPath(); ctx.arc(px, py, 2 * al, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(255,180,140,${al})`; ctx.fill()
-      }
+        const arcs = ARCS
+          .filter(([a, b]) => a < coords.length && b < coords.length)
+          .map(([a, b]) => ({
+            from: [coords[a][0], coords[a][1]] as [number, number],
+            to: [coords[b][0], coords[b][1]] as [number, number],
+          }))
 
-      ctx.globalAlpha = 1
+        let globe: ReturnType<typeof createGlobe>
+        try {
+          globe = createGlobe(cvs, {
+            devicePixelRatio: Math.min(window.devicePixelRatio, 2),
+            width: width * 2,
+            height: width * 2,
+            phi: 0,
+            theta: 0.3,
+            dark: isLt ? 0 : 1,
+            diffuse: isLt ? 1.2 : 0.4,
+            mapSamples: 24000,
+            baseColor: isLt ? [0.93, 0.93, 0.96] : [0.08, 0.07, 0.06],
+            mapBrightness: isLt ? 2 : 8,
+            markerColor: [1, 0.35, 0.1],
+            glowColor: isLt ? [0.95, 0.95, 0.97] : [0.06, 0.05, 0.04],
+            markers,
+            arcs,
+            arcColor: [1, 0.4, 0.12],
+            arcWidth: 0.25,
+            arcHeight: 0.15,
+            markerElevation: 0,
+          })
+        } catch {
+          return // WebGL context lost or unavailable
+        }
+
+        let animId: number
+        function animate() {
+          if (destroyed || !cvs) return
+          phi += 0.003
+          const w = cvs.offsetWidth
+          if (w > 0) {
+            try {
+              globe.update({
+                phi: phi + scrollProg.current * Math.PI * 0.6,
+                width: w * 2,
+                height: w * 2,
+              })
+            } catch {
+              return // WebGL context lost
+            }
+          }
+          animId = requestAnimationFrame(animate)
+        }
+        animId = requestAnimationFrame(animate)
+
+        cvs.style.opacity = '1'
+
+        const origDestroy = globe.destroy.bind(globe)
+        globeInstance = {
+          destroy: () => { cancelAnimationFrame(animId); try { origDestroy() } catch { /* already destroyed */ } }
+        }
+      })
     }
 
-    function loop(now: number) {
-      const dt = lastT ? (now - lastT) / 1000 : 0.016
-      lastT = now
-      autoA   += 0.09 * dt
-      elapsed += dt
-      render()
-      animId = requestAnimationFrame(loop)
-    }
-    animId = requestAnimationFrame(loop)
+    // Start after a short delay
+    const timer = setTimeout(initGlobe, 200)
 
     return () => {
-      cancelAnimationFrame(animId)
-      window.removeEventListener('resize', resize)
+      destroyed = true
+      clearTimeout(timer)
+      if (globeInstance) globeInstance.destroy()
     }
-  }, [bp, cfg])
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c.isLight])
   /* ── GSAP ScrollTrigger ──────────────────────────────────── */
   useLayoutEffect(() => {
     globeAlpha.current.v = 1
@@ -318,7 +283,6 @@ export default function Hero() {
       gsapCtx = gsap.context(() => {
         gsap.set('.photo-card', { xPercent: -50, yPercent: -50, scale: 0, opacity: 0 })
         gsap.from('.hero-center', { opacity: 0, y: 30, duration: 1.2, delay: 0.3, ease: 'power3.out' })
-        gsap.from(canvasRef.current, { opacity: 0, scale: 0.96, duration: 1.6, ease: 'power3.out' })
 
         const ps = cfg.posScale
         const tl = gsap.timeline({
@@ -377,32 +341,35 @@ export default function Hero() {
           {/* Globe canvas */}
           <div
               className="absolute z-10 pointer-events-none"
-              style={isM ? {
-                width: '100%', height: '100vw',
-                left: 0, top: '50%', transform: 'translateY(-50%)',
-              } : {
-                inset: 0, width: '100%', height: '100%',
+              style={{
+                width: isM ? '110vw' : isT ? '700px' : '950px',
+                height: isM ? '110vw' : isT ? '700px' : '950px',
+                left: '50%', top: '50%',
+                transform: 'translate(-50%, -50%)',
               }}
           >
-            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+            <canvas ref={canvasRef} className="w-full h-full" style={{
+              opacity: 0, transition: 'opacity 0.8s',
+              filter: 'saturate(1.3) contrast(1.05)',
+            }} />
           </div>
 
           {/* Photo cards */}
           <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden">
-            {cards.map(c => (
+            {cards.map(cd => (
                 <div
-                    key={c.id}
+                    key={cd.id}
                     className="photo-card absolute rounded-xl overflow-hidden"
                     style={{
                       top: '50%', left: '50%',
-                      width:  c.w * cfg.cardScale,
-                      height: c.h * cfg.cardScale,
-                      boxShadow: '0 8px 40px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.3)',
+                      width:  cd.w * cfg.cardScale,
+                      height: cd.h * cfg.cardScale,
+                      boxShadow: c.isLight ? '0 8px 40px rgba(0,0,0,.15), 0 2px 8px rgba(0,0,0,.08)' : '0 8px 40px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.3)',
                       willChange: 'transform, opacity',
                     }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={c.img} alt="" loading="eager" draggable={false}
+                  <img src={cd.img} alt="" loading="eager" draggable={false}
                        className="w-full h-full object-cover select-none" />
                 </div>
             ))}
@@ -410,7 +377,9 @@ export default function Hero() {
 
           {/* Vignette */}
           <div className="absolute inset-0 z-30 pointer-events-none" style={{
-            background: `radial-gradient(ellipse ${isM ? '52% 44%' : '42% 36%'} at 50% 50%, rgba(10,10,8,0.82) 0%, rgba(10,10,8,0.45) 40%, rgba(10,10,8,0.08) 70%, transparent 100%)`,
+            background: c.isLight
+              ? `radial-gradient(ellipse ${isM ? '52% 44%' : '42% 36%'} at 50% 50%, rgba(243,244,247,0.9) 0%, rgba(243,244,247,0.6) 40%, rgba(243,244,247,0.15) 70%, transparent 100%)`
+              : `radial-gradient(ellipse ${isM ? '52% 44%' : '42% 36%'} at 50% 50%, rgba(10,10,8,0.82) 0%, rgba(10,10,8,0.45) 40%, rgba(10,10,8,0.08) 70%, transparent 100%)`,
           }} />
 
           {/* Hero content */}
@@ -425,7 +394,7 @@ export default function Hero() {
               letterSpacing: '-0.01em',
             }}>
               {t('hero_title_line1')}{' '}
-              <span style={{ color: 'rgba(255,255,255,0.55)' }}>{t('hero_title_line2')}</span>
+              <span style={{ color: c.isLight ? '#333333' : 'rgba(255,255,255,0.55)' }}>{t('hero_title_line2')}</span>
             </h1>
 
             <p className="font-dm text-white/55 text-center" style={{
@@ -465,7 +434,7 @@ export default function Hero() {
                     height: isM ? 38 : isT ? 46 : 50,
                     paddingInline: isM ? 20 : 28,
                     fontSize: isM ? 11 : 13, fontWeight: 600, letterSpacing: '0.08em',
-                    border: '1px solid rgba(255,255,255,.25)',
+                    border: `1px solid ${c.isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,.25)'}`,
                     backdropFilter: 'blur(8px)',
                     textDecoration: 'none',
                     ...(isM ? { width: '100%', maxWidth: 200 } : {}),

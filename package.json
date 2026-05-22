@@ -11,12 +11,20 @@
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
     "@neondatabase/serverless": "^0.10.4",
+    "@stripe/stripe-js": "^9.4.0",
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.105.1",
+    "bcryptjs": "^3.0.3",
+    "cobe": "^2.0.1",
     "framer-motion": "^11.18.0",
     "gsap": "^3.12.5",
+    "nanoid": "^5.1.9",
     "next": "^16.2.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.55.0",
+    "stripe": "^22.1.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {

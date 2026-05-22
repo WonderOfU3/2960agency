@@ -183,42 +183,38 @@ export const BUSINESS_TYPES: Opt[] = [
 
 /* ─── Business: Collabs ─── */
 export const CREATOR_OFFER: Opt[] = [
-  { value: 'meal_one',     label: l('Repas offert pour 1',         'Free meal for one') },
-  { value: 'meal_two',     label: l('Repas offert pour 2',         'Free meal for two') },
-  { value: 'meal_payment', label: l('Repas + rémunération',        'Free meal + payment') },
-  { value: 'payment',      label: l('Rémunération uniquement',     'Payment only') },
-  { value: 'discuss',      label: l('À discuter',                  "Let's discuss") },
+  { value: 'meal',           label: l('Repas offert',                                                    'Free meal') },
+  { value: 'virality_bonus', label: l('Prime de viralité si la vidéo fonctionne (à définir dans vos réglages)', 'Virality bonus if the video performs (configurable in your settings)') },
 ]
 
 export const CONTENT_WANTED: Opt[] = [
-  { value: 'tiktok',     label: l('1 vidéo TikTok',   '1 TikTok video') },
-  { value: 'ig_reel',    label: l('1 Instagram Reel', '1 Instagram Reel') },
-  { value: 'ig_stories', label: l('Instagram Stories','Instagram Stories') },
-  { value: 'tiktok_ig',  label: l('TikTok + Instagram','TikTok + Instagram') },
-  { value: 'flexible',   label: l('Je suis flexible', "I'm flexible") },
+  { value: 'aesthetic',  label: l('1 vidéo aesthetic',    '1 aesthetic video') },
+  { value: 'voiceover',  label: l('1 vidéo voix off',     '1 voiceover video') },
+  { value: 'carousel',   label: l('Carrousel photo',      'Photo carousel') },
+  { value: 'flexible',   label: l('Je suis flexible',     "I'm flexible") },
 ]
 
-/* ─── Business: NEW — Content destination ─── */
+/* ─── Business: Content destination ─── */
 export const CONTENT_DESTINATION: Opt[] = [
   { value: 'creator_account', label: l('Sur le compte du créateur', "On the creator's account") },
   { value: 'my_account',      label: l('Sur mon compte',             'On my account') },
-  { value: 'both',             label: l('Les deux',                  'Both') },
+  { value: 'both',            label: l('Les deux',                   'Both') },
 ]
 
-export const CREATIVE_FREEDOM: Opt[] = [
-  { value: 'total',      label: l('Liberté totale',        'Total freedom') },
-  { value: 'guidelines', label: l('Quelques guidelines',   'Some guidelines') },
-  { value: 'precise',    label: l('Brief précis',          'Precise brief') },
-  { value: 'discuss',    label: l('À discuter ensemble',   "Let's discuss") },
-]
-
-/* ─── Business: UPDATED frequency — removed "quelques fois par an", added "2-3 fois par semaine" ─── */
+/* ─── Business: Frequency ─── */
 export const COLLAB_FREQUENCY: Opt[] = [
-  { value: 'twice_week',  label: l('2–3 fois par semaine', '2–3 times a week') },
-  { value: 'weekly',      label: l('Une fois par semaine', 'Once a week') },
-  { value: 'bimonthly',   label: l('2–3 fois par mois',   '2–3 times a month') },
-  { value: 'monthly',     label: l('Une fois par mois',   'Once a month') },
-  { value: 'as_needed',   label: l('Selon les besoins',   'As needed') },
+  { value: '2_3_week',   label: l('2–3 par semaine',   '2–3 per week') },
+  { value: '4_5_week',   label: l('4–5 par semaine',   '4–5 per week') },
+  { value: '4_5_month',  label: l('4–5 par mois',      '4–5 per month') },
+  { value: 'as_needed',  label: l('Selon les besoins', 'As needed') },
+]
+
+/* ─── Business: Max creators per slot ─── */
+export const MAX_CREATORS_PER_SLOT: Opt[] = [
+  { value: '1',  label: l('1 seul créateur par créneau',     '1 creator per slot') },
+  { value: '2',  label: l('Jusqu\'à 2 en même temps',        'Up to 2 at the same time') },
+  { value: '3',  label: l('Jusqu\'à 3 en même temps',        'Up to 3 at the same time') },
+  { value: 'no_limit', label: l('Pas de limite',             'No limit') },
 ]
 
 export const BIZ_PREVIOUS_COLLABS: Opt[] = [
@@ -248,12 +244,7 @@ export const DAYS: Opt[] = [
   { value: 'sunday',    label: l('Dimanche', 'Sunday') },
 ]
 
-export const TIMES: Opt[] = [
-  { value: 'lunch',     label: l('Midi',       'Lunch') },
-  { value: 'afternoon', label: l('Après-midi', 'Afternoon') },
-  { value: 'dinner',    label: l('Soir',       'Dinner') },
-  { value: 'flexible',  label: l('Flexible',   'Flexible') },
-]
+/* TIMES removed — replaced by time range inputs in the form */
 
 /* Helper to get label for a locale */
 export function optLabel(opt: Opt, locale: Locale): string {

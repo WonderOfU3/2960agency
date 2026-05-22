@@ -23,8 +23,13 @@ const T: Record<Locale, Record<string, string>> = {
     step1: "À propos de toi", step2: "Tes quartiers", step3: "Tes goûts",
     step4: "Tes collabs idéales", step5: "Ton contenu",
     next: "Suivant", prev: "Précédent",
-    submit: "Envoyer ma candidature", submitting: "Envoi en cours…", back: "Retour à l'accueil",
+    submit: "Créer mon compte", submitting: "Création en cours…", back: "Retour à l'accueil",
+    username: "Nom d'utilisateur", phUsername: "ex: marie_food",
+    usernameHint: "Visible par les restaurants — lettres, chiffres et _ uniquement",
+    usernameTaken: "Ce nom d'utilisateur est déjà pris",
+    usernameChecking: "Vérification…",
     firstName: "Prénom", lastName: "Nom", email: "Adresse e-mail", phone: "Téléphone",
+    password: "Mot de passe", passwordHelp: "Minimum 8 caractères",
     tiktok: "TikTok", instagram: "Instagram", city: "Ville",
     languages: "Langues parlées", contentLang: "Langue(s) de création de contenu",
     phFirst: "Ex : Marie", phLast: "Ex : Dupont", phEmail: "marie@exemple.com",
@@ -71,6 +76,9 @@ const T: Record<Locale, Record<string, string>> = {
     invUrl: "URL invalide", invDomain: "Utilise un lien Instagram ou TikTok",
     needSocial: "Ajoute au moins TikTok",
     needProof: "Ajoute au moins un lien ou uploade une vidéo",
+    acceptCGU: "J'ai lu et j'accepte les Conditions Générales d'Utilisation de 2960 Agency. Je certifie être majeur(e) et utiliser la Plateforme en qualité de créateur indépendant.",
+    privacyNotice: "En créant un compte, vous reconnaissez avoir pris connaissance de la",
+    privacyLink: "Politique de Confidentialité",
     submitErr: "Une erreur est survenue. Réessaie.",
   },
   en: {
@@ -79,8 +87,13 @@ const T: Record<Locale, Record<string, string>> = {
     step1: "About you", step2: "Your areas", step3: "Your tastes",
     step4: "Your ideal collabs", step5: "Your content",
     next: "Next", prev: "Previous",
-    submit: "Submit my application", submitting: "Submitting…", back: "Back to home",
+    submit: "Create my account", submitting: "Creating…", back: "Back to home",
+    username: "Username", phUsername: "e.g. marie_food",
+    usernameHint: "Visible to restaurants — letters, numbers and _ only",
+    usernameTaken: "This username is already taken",
+    usernameChecking: "Checking…",
     firstName: "First name", lastName: "Last name", email: "Email address", phone: "Phone",
+    password: "Password", passwordHelp: "Minimum 8 characters",
     tiktok: "TikTok", instagram: "Instagram", city: "City",
     languages: "Languages you speak", contentLang: "Language(s) you create content in",
     phFirst: "e.g. Jane", phLast: "e.g. Smith", phEmail: "jane@example.com",
@@ -126,12 +139,15 @@ const T: Record<Locale, Record<string, string>> = {
     invUrl: "Invalid URL", invDomain: "Please use an Instagram or TikTok link",
     needSocial: "TikTok is required",
     needProof: "Add at least one link or upload a video",
+    acceptCGU: "I have read and accept the General Terms of Use of 2960 Agency. I certify that I am of legal age and that I am using the Platform as an independent creator.",
+    privacyNotice: "By creating an account, you acknowledge having read the",
+    privacyLink: "Privacy Policy",
     submitErr: "Something went wrong. Please try again.",
   },
 }
 
 interface State {
-  firstName: string; lastName: string; email: string; phone: string
+  username: string; firstName: string; lastName: string; email: string; phone: string; password: string
   tiktok: string; instagram: string; city: string
   languages: string[]; contentLang: string[]
   arrondissements: string[]; otherAreas: string; collabDistance: string; collabAvailability: string[]
@@ -143,10 +159,11 @@ interface State {
   prevCollabs: string; prevCollabsDetail: string
   niche: string[]; audienceSize: string
   postedContent: string; contentLinks: string[]; contentNote: string
+  acceptCGU: boolean
 }
 
 const INIT: State = {
-  firstName: '', lastName: '', email: '', phone: '',
+  username: '', firstName: '', lastName: '', email: '', phone: '', password: '',
   tiktok: '', instagram: '', city: '',
   languages: [], contentLang: [],
   arrondissements: [], otherAreas: '', collabDistance: '', collabAvailability: [],
@@ -158,6 +175,7 @@ const INIT: State = {
   prevCollabs: '', prevCollabsDetail: '',
   niche: [], audienceSize: '',
   postedContent: '', contentLinks: [''], contentNote: '',
+  acceptCGU: false,
 }
 
 export default function CreatorForm() {
@@ -218,9 +236,13 @@ export default function CreatorForm() {
   const validate = (s: number): boolean => {
     const e: Record<string, string> = {}
     if (s === 0) {
+      if (!form.username.trim() || form.username.length < 3) e.username = t.req
+      if (!/^[a-zA-Z0-9_]*$/.test(form.username)) e.username = t.usernameHint
       if (!form.firstName.trim()) e.firstName = t.req
       if (!form.lastName.trim())  e.lastName  = t.req
       if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) e.email = t.invEmail
+      if (!form.phone.trim()) e.phone = t.req
+      if (!form.password.trim() || form.password.length < 8) e.password = t.passwordHelp
       if (!form.tiktok.trim()) e.tiktok = t.needSocial
       if (!form.city.trim()) e.city = t.req
       if (form.languages.length === 0) e.languages = t.req
@@ -256,6 +278,7 @@ export default function CreatorForm() {
       if (form.postedContent === 'a_little') {
         if (!form.contentLinks.some(l => l.trim()) && files.length === 0) e.contentLinks = t.needProof
       }
+      if (!form.acceptCGU) e.acceptCGU = t.req
     }
     setErrors(e)
     if (Object.keys(e).length > 0) {
@@ -271,9 +294,23 @@ export default function CreatorForm() {
     if (!validate(step)) return
     setSubmitting(true)
     try {
+      // Upload video files to Cloudinary
+      const uploadedUrls: string[] = []
+      for (const entry of files) {
+        const formData = new FormData()
+        formData.append('file', entry.file)
+        formData.append('folder', '2960agency/creators')
+        const upRes = await fetch('/api/upload', { method: 'POST', body: formData })
+        if (upRes.ok) {
+          const { url } = await upRes.json()
+          uploadedUrls.push(url)
+        }
+      }
+
       const payload = {
+        username: form.username.trim().toLowerCase(),
         firstName: form.firstName.trim(), lastName: form.lastName.trim(),
-        email: form.email.trim(), phone: form.phone.trim(),
+        email: form.email.trim(), phone: form.phone.trim(), password: form.password,
         tiktok: form.tiktok.trim(), instagram: form.instagram.trim() || null,
         city: form.city.trim(), languages: form.languages, contentLang: form.contentLang,
         arrondissements: form.arrondissements, otherAreas: form.otherAreas.trim() || null,
@@ -291,6 +328,7 @@ export default function CreatorForm() {
         contentLinks: form.contentLinks.filter(l => l.trim()),
         contentNote: form.contentNote.trim() || null,
         fileNames: files.map(f => f.file.name),
+        cloudinaryUrls: uploadedUrls,
         locale,
       }
       const res = await fetch('/api/submit-creator', {
@@ -299,6 +337,10 @@ export default function CreatorForm() {
         body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error('failed')
+      const data = await res.json()
+      if (data.ambassadorCode) {
+        localStorage.setItem('creatorAmbassadorCode', data.ambassadorCode)
+      }
       router.push('/creator/success')
     } catch {
       setErrors({ submit: t.submitErr })
@@ -319,12 +361,16 @@ export default function CreatorForm() {
       >
         {step === 0 && (
             <div className="form-fields">
+              <TextField label={t.username} value={form.username} onChange={v => set('username', v.replace(/[^a-zA-Z0-9_]/g, ''))} placeholder={t.phUsername} error={errors.username} required locale={locale} autoComplete="username" hint={t.usernameHint} />
               <div className="form-grid-2">
-                <TextField label={t.firstName} value={form.firstName} onChange={v => set('firstName', v)} placeholder={t.phFirst} error={errors.firstName} required locale={locale} />
-                <TextField label={t.lastName} value={form.lastName} onChange={v => set('lastName', v)} placeholder={t.phLast} error={errors.lastName} required locale={locale} />
+                <TextField label={t.firstName} value={form.firstName} onChange={v => set('firstName', v)} placeholder={t.phFirst} error={errors.firstName} required locale={locale} autoComplete="given-name" />
+                <TextField label={t.lastName} value={form.lastName} onChange={v => set('lastName', v)} placeholder={t.phLast} error={errors.lastName} required locale={locale} autoComplete="family-name" />
               </div>
-              <TextField label={t.email} value={form.email} onChange={v => set('email', v)} placeholder={t.phEmail} error={errors.email} required locale={locale} type="email" />
-              <TextField label={t.phone} value={form.phone} onChange={v => set('phone', v)} placeholder={t.phPhone} locale={locale} type="tel" />
+              <TextField label={t.email} value={form.email} onChange={v => set('email', v)} placeholder={t.phEmail} error={errors.email} required locale={locale} type="email" autoComplete="email" />
+              <div className="form-grid-2">
+                <TextField label={t.phone} value={form.phone} onChange={v => set('phone', v)} placeholder={t.phPhone} error={errors.phone} required locale={locale} type="tel" autoComplete="tel" />
+                <TextField label={t.password} value={form.password} onChange={v => set('password', v)} placeholder={t.passwordHelp} error={errors.password} required locale={locale} type="password" autoComplete="new-password" />
+              </div>
               <Divider />
               <div className="form-grid-2">
                 <TextField label={t.tiktok} value={form.tiktok} onChange={v => set('tiktok', v)} placeholder={t.phTiktok} error={errors.tiktok} required locale={locale} prefix="@" />
@@ -406,6 +452,43 @@ export default function CreatorForm() {
                     <TextareaField label={t.contentNote} value={form.contentNote} onChange={v => set('contentNote', v)} placeholder={t.phNote} locale={locale} rows={2} />
                   </div>
               )}
+
+              <Divider />
+
+              {/* Legal checkbox — always visible on step 4 */}
+              <div data-e={errors.acceptCGU ? '' : undefined}>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <div onClick={() => { setForm(p => ({ ...p, acceptCGU: !p.acceptCGU })); if (errors.acceptCGU) setErrors(p => { const n = { ...p }; delete n.acceptCGU; return n }) }}
+                    className="flex items-center justify-center flex-shrink-0 rounded transition-all mt-0.5"
+                    style={{
+                      width: 20, height: 20,
+                      background: form.acceptCGU ? '#E8471A' : 'transparent',
+                      border: form.acceptCGU ? '2px solid #E8471A' : `2px solid ${errors.acceptCGU ? 'rgba(217,79,42,0.6)' : 'rgba(128,128,128,0.4)'}`,
+                    }}>
+                    {form.acceptCGU && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="font-dm text-white/50 text-[12px] leading-relaxed">
+                    {t.acceptCGU.split('Conditions Générales d\'Utilisation').length > 1
+                      ? <>{t.acceptCGU.split('Conditions Générales d\'Utilisation')[0]}<a href="/legal/cgu-creators" target="_blank" rel="noopener" style={{ color: '#E8471A', textDecoration: 'underline' }}>Conditions G&#233;n&#233;rales d&apos;Utilisation</a>{t.acceptCGU.split('Conditions Générales d\'Utilisation')[1]}</>
+                      : <>{t.acceptCGU.split('General Terms of Use')[0]}<a href="/legal/cgu-creators" target="_blank" rel="noopener" style={{ color: '#E8471A', textDecoration: 'underline' }}>General Terms of Use</a>{t.acceptCGU.split('General Terms of Use')[1]}</>
+                    }
+                    <span className="text-[#D94F2A] ml-1">*</span>
+                  </span>
+                </label>
+                {errors.acceptCGU && <p className="font-dm text-[#D94F2A]/70 text-[11px] mt-1 ml-8">{errors.acceptCGU}</p>}
+              </div>
+
+              {/* Privacy notice — always visible on step 4 */}
+              <p className="font-dm text-[#c8c3b8]/40 text-[12px] leading-relaxed">
+                {t.privacyNotice}{' '}
+                <a href="/legal/privacy" target="_blank" rel="noopener" style={{ color: '#E8471A', textDecoration: 'underline' }}>
+                  {t.privacyLink}
+                </a>.
+              </p>
             </div>
         )}
 

@@ -4,11 +4,13 @@ import { useState, useRef, type ReactNode } from 'react'
 import Link from 'next/link'
 import type { Opt } from './data'
 import type { Locale } from '@/context/LanguageContext'
+import { useTheme } from '@/context/ThemeContext'
 
-/* ── Design tokens ───────────────────────────────────────── */
-const PAGE        = '#0c0b09'
-const CARD        = '#191714'
-const CARD_BORDER = 'rgba(255,255,255,0.08)'
+/* ── Design tokens (now theme-aware via hook in components) ── */
+function useColors() {
+  const { c } = useTheme()
+  return { PAGE: c.pageBg, CARD: c.cardBg, CARD_BORDER: c.cardBorder }
+}
 const OPT_LABEL: Record<Locale, string> = { fr: 'optionnel', en: 'optional' }
 
 /* ════════════════════════════════════════
@@ -57,6 +59,7 @@ export function FormShell({
 }: FormShellProps) {
   const total  = stepLabels.length
   const isLast = currentStep === total - 1
+  const { PAGE, CARD, CARD_BORDER } = useColors()
 
   return (
     <section className="min-h-screen relative" style={{ background: PAGE }}>
@@ -96,7 +99,7 @@ export function FormShell({
                 <div key={i} className="h-[6px] rounded-full transition-all duration-400"
                   style={{
                     width: i === currentStep ? 24 : 6,
-                    background: i <= currentStep ? '#D94F2A' : 'rgba(255,255,255,0.08)',
+                    background: i <= currentStep ? '#D94F2A' : (CARD_BORDER),
                   }}
                 />
               ))}
@@ -166,11 +169,11 @@ function FieldLabel({ label, required, locale = 'fr', suffix }: {
   label: string; required?: boolean; locale?: Locale; suffix?: string
 }) {
   return (
-    <label className="font-dm text-[#c8c3b8]/80 text-[13.5px] font-medium block leading-snug"
+    <label className="font-dm text-[13.5px] font-medium block leading-snug form-label"
       style={{ marginBottom: 10 }}>
       {label}
-      {required && <span className="text-[#D94F2A]/80" style={{ marginLeft: 2 }}>*</span>}
-      {!required && <span className="text-white/20 text-[11.5px] font-normal" style={{ marginLeft: 6 }}>
+      {required && <span className="text-[#D94F2A]" style={{ marginLeft: 2 }}>*</span>}
+      {!required && <span className="form-label-opt text-[11.5px] font-normal" style={{ marginLeft: 6 }}>
         ({OPT_LABEL[locale]})
       </span>}
       {suffix && <span className="text-[#FCFAA6]/30 text-[11.5px] font-normal" style={{ marginLeft: 6 }}>{suffix}</span>}
@@ -191,14 +194,15 @@ const inputClasses = (hasError: boolean) =>
       : 'border-white/[0.07] hover:border-white/[0.12] focus:border-[#D94F2A]/35 focus:shadow-[0_0_0_3px_rgba(217,79,42,0.06)]'
   }`
 
-export function TextField({ label, value, onChange, placeholder, error, required, locale = 'fr', type = 'text', prefix }: {
+export function TextField({ label, value, onChange, placeholder, error, required, locale = 'fr', type = 'text', prefix, autoComplete, hint }: {
   label: string; value: string; onChange: (v: string) => void
   placeholder?: string; error?: string; required?: boolean
-  locale?: Locale; type?: string; prefix?: string
+  locale?: Locale; type?: string; prefix?: string; autoComplete?: string; hint?: string
 }) {
   return (
     <div>
       <FieldLabel label={label} required={required} locale={locale} />
+      {hint && <p className="font-dm text-[11px] mb-2" style={{ color: 'var(--text-color, rgba(255,255,255,0.3))', opacity: 0.4 }}>{hint}</p>}
       <div className="relative">
         {prefix && (
           <span className="absolute top-1/2 -translate-y-1/2 font-dm text-white/20 text-[14px] pointer-events-none"
@@ -206,6 +210,7 @@ export function TextField({ label, value, onChange, placeholder, error, required
         )}
         <input type={type} value={value} onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
+          autoComplete={autoComplete}
           className={inputClasses(!!error)}
           style={{ height: 56, padding: prefix ? '0 16px 0 34px' : '0 16px' }}
         />
@@ -345,9 +350,9 @@ export function FileUploadZone({ label, files, onAdd, onRemove, error, required,
           className={`relative rounded-xl text-center transition-all duration-200 cursor-pointer border-[1.5px] border-dashed ${
             dragging
               ? 'border-[#D94F2A]/30 bg-[#D94F2A]/[0.04]'
-              : 'border-white/[0.08] hover:border-white/[0.14] hover:bg-white/[0.02]'
+              : 'border-white/[0.10] hover:border-white/[0.16] hover:bg-white/[0.02]'
           }`}
-          style={{ padding: '32px 20px' }}
+          style={{ padding: 'clamp(20px, 5vw, 32px) 20px', borderColor: dragging ? undefined : 'var(--input-border)' }}
           onDragOver={e => { e.preventDefault(); setDragging(true) }}
           onDragLeave={() => setDragging(false)}
           onDrop={e => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files.length) onAdd(e.dataTransfer.files) }}
@@ -355,14 +360,14 @@ export function FileUploadZone({ label, files, onAdd, onRemove, error, required,
         >
           <input ref={ref} type="file" accept=".mp4,.mov" multiple className="hidden"
             onChange={e => { if (e.target.files) onAdd(e.target.files); e.target.value = '' }} />
-          <div className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto" style={{ marginBottom: 12 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto" style={{ marginBottom: 12, background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
             </svg>
           </div>
-          <p className="font-dm text-white/45 text-[13px] font-medium" style={{ marginBottom: 2 }}>{chooseBtnLabel}</p>
-          <p className="font-dm text-white/20 text-[12px]">{dropLabel}</p>
-          <p className="font-dm text-white/[0.12] text-[11px]" style={{ marginTop: 8 }}>{formatLabel}</p>
+          <p className="font-dm text-[13px] font-medium form-label" style={{ marginBottom: 2 }}>{chooseBtnLabel}</p>
+          <p className="font-dm text-[12px]" style={{ color: 'var(--text-color)', opacity: 0.35 }}>{dropLabel}</p>
+          <p className="font-dm text-[11px]" style={{ marginTop: 8, color: 'var(--text-color)', opacity: 0.25 }}>{formatLabel}</p>
         </div>
       )}
       {files.length > 0 && (

@@ -4,9 +4,13 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useLanguage } from '@/context/LanguageContext'
+import { useTheme } from '@/context/ThemeContext'
+import LanguageToggle from '@/components/LanguageToggle'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function Navbar() {
   const { t, toggleLocale } = useLanguage()
+  const { c } = useTheme()
   const [sm, setSm] = useState(false)
   const pathname = usePathname()
   const isHome = pathname === '/'
@@ -19,9 +23,11 @@ export default function Navbar() {
   }, [])
 
   const pill =
-      'font-dm text-white hover:text-white/80 rounded-full transition-all duration-200 ' +
-      'hover:border-white/50 flex items-center justify-center uppercase whitespace-nowrap ' +
-      'border border-white/[.35] cursor-pointer'
+      'font-dm rounded-full transition-all duration-200 ' +
+      'flex items-center justify-center uppercase whitespace-nowrap cursor-pointer'
+
+  const pillBorder = c.isLight ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.35)'
+  const pillColor = c.isLight ? '#222' : '#fff'
 
   const btnStyle: React.CSSProperties = sm
       ? { height: 28, paddingLeft: 10, paddingRight: 10, fontSize: 10, fontWeight: 500, letterSpacing: '0.04em' }
@@ -37,7 +43,7 @@ export default function Navbar() {
 
   const navLinkStyle = (active: boolean): React.CSSProperties => ({
     fontSize: 14, fontWeight: 400, textDecoration: 'none',
-    color: active ? '#D94F2A' : 'white',
+    color: active ? '#D94F2A' : (c.isLight ? '#333' : 'white'),
     transition: 'color 0.2s',
   })
 
@@ -50,7 +56,7 @@ export default function Navbar() {
         <Link
             href="/"
             className="font-buster text-white pointer-events-auto select-none shrink-0"
-            style={{ fontSize: sm ? 10 : 14, letterSpacing: '0.02em', textDecoration: 'none' }}
+            style={{ fontSize: sm ? 11 : 14, letterSpacing: '0.02em', textDecoration: 'none' }}
         >
           2960 AGENCY
         </Link>
@@ -69,7 +75,7 @@ export default function Navbar() {
                 >
                 {t('nav_howItWorks')}
               </a>
-            <span className="text-white/20" style={{ fontSize: 6 }}>•</span>
+            <span style={{ fontSize: 6, color: c.isLight ? '#ccc' : 'rgba(255,255,255,0.2)' }}>•</span>
         <Link
             href="/tarifs"
             className="font-dm hover:text-white/60 transition-colors duration-200 whitespace-nowrap"
@@ -88,10 +94,28 @@ export default function Navbar() {
       </div>
 )}
 
-{/* Lang toggle */}
-  <button onClick={toggleLocale} className={pill} style={btnStyle}>
-    {t('nav_langSwitch')}
-  </button>
+{/* Login buttons */}
+  <Link href="/creator/login" className={pill} style={{
+    ...btnStyle,
+    background: '#E8471A',
+    border: '1px solid #E8471A',
+    color: '#fff',
+    textDecoration: 'none',
+  }}>
+    {t('nav_login')}
+  </Link>
+  <Link href="/restaurant/login" className={pill} style={{
+    ...btnStyle,
+    border: pillBorder,
+    color: pillColor,
+    textDecoration: 'none',
+  }}>
+    {t('nav_loginResto')}
+  </Link>
+
+{/* Theme + Lang toggles */}
+  <ThemeToggle />
+  <LanguageToggle />
 </div>
 </nav>
 )

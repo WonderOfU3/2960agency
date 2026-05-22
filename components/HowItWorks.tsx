@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '@/context/LanguageContext'
 import type { TranslationStrings } from '@/context/LanguageContext'
+import { useTheme } from '@/context/ThemeContext'
 
 type BP = 'mobile' | 'tablet' | 'desktop'
 function getBP(): BP {
@@ -41,7 +42,8 @@ function useReveal() {
 }
 
 export default function HowItWorks() {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
+  const { c } = useTheme()
   const [bp, setBp] = useState<BP>('desktop')
   const headerRef = useReveal()
   const leftRef   = useReveal()
@@ -108,6 +110,7 @@ export default function HowItWorks() {
                   ctaHref="/creator"
                   isM={isM}
                   t={t}
+                  isLight={c.isLight}
               />
             </div>
             <div ref={rightRef} className="hiw-reveal" style={{ transitionDelay: '0.15s' }}>
@@ -117,8 +120,10 @@ export default function HowItWorks() {
                   ctaLabel={t('hiw_businesses_cta')}
                   ctaVariant="outline"
                   ctaHref="/business"
+                  ctaSubtitle={locale === 'fr' ? '*Pour tout nouveau restaurant inscrit' : '*For every newly registered restaurant'}
                   isM={isM}
                   t={t}
+                  isLight={c.isLight}
               />
             </div>
           </div>
@@ -139,22 +144,25 @@ export default function HowItWorks() {
   )
 }
 
-function Column({ title, steps, ctaLabel, ctaVariant, ctaHref, isM, t }: {
+function Column({ title, steps, ctaLabel, ctaVariant, ctaHref, ctaSubtitle, isM, t, isLight }: {
   title: string
   steps: { titleKey: keyof TranslationStrings; descKey: keyof TranslationStrings }[]
   ctaLabel: string
   ctaVariant: 'solid' | 'outline'
   ctaHref: string
+  ctaSubtitle?: string
   isM: boolean
   t: (key: keyof TranslationStrings) => string
+  isLight: boolean
 }) {
   return (
       <div style={{
         display: 'flex', flexDirection: 'column',
-        background: 'rgba(255,255,255,0.025)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: isLight ? '#ffffff' : 'rgba(255,255,255,0.025)',
+        border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.06)',
+        boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.04)' : 'none',
         borderRadius: 20,
-        padding: isM ? '28px 22px' : '36px 32px',
+        padding: isM ? '24px 16px' : '36px 32px',
         height: '100%',
       }}>
         <h3 className="font-dm text-white" style={{
@@ -209,13 +217,21 @@ function Column({ title, steps, ctaLabel, ctaVariant, ctaHref, isM, t }: {
                 fontSize: isM ? 11 : 12, fontWeight: 600, letterSpacing: '0.06em',
                 width: '100%', textDecoration: 'none',
                 ...(ctaVariant === 'outline' ? {
-                  border: '1px solid rgba(255,255,255,.2)',
+                  border: isLight ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,.2)',
                   backdropFilter: 'blur(8px)',
                 } : {}),
               }}
           >
             {ctaLabel}
           </Link>
+          {ctaSubtitle && (
+            <p className="font-dm" style={{
+              fontSize: 11, color: isLight ? '#888888' : 'rgba(255,255,255,0.3)',
+              textAlign: 'center', marginTop: 8, fontStyle: 'italic',
+            }}>
+              {ctaSubtitle}
+            </p>
+          )}
         </div>
       </div>
   )

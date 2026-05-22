@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import { useLanguage } from '@/context/LanguageContext'
+import { useTheme } from '@/context/ThemeContext'
 
 type Locale = 'fr' | 'en'
 
@@ -70,21 +71,24 @@ const T: Record<Locale, Translations> = {
     },
 }
 
-const INPUT = `
+function getInputCSS(isLight: boolean) {
+  return `
   width: 100%;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: ${isLight ? '#e6e6ea' : 'rgba(255,255,255,0.04)'};
+  border: 1px solid ${isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.08)'};
   border-radius: 14px;
-  color: #fff;
+  color: ${isLight ? '#111' : '#fff'};
   font-family: 'DM Sans', sans-serif;
   font-size: 14.5px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
 `
+}
 
 export default function ContactPage() {
     const { locale } = useLanguage()
+    const { c } = useTheme()
     const t = T[locale]
 
     const [form, setForm]   = useState({ name: '', email: '', subject: '', message: '' })
@@ -134,7 +138,10 @@ export default function ContactPage() {
             ? 'rgba(217,79,42,0.45)'
             : focused === field
                 ? 'rgba(217,79,42,0.4)'
-                : 'rgba(255,255,255,0.08)'
+                : (c.isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.08)')
+
+    const INPUT = getInputCSS(c.isLight)
+    const labelColor = c.isLight ? '#333333' : 'rgba(200,195,185,0.7)'
 
     const shadow = (field: string) =>
         focused === field && !errors[field]
@@ -142,7 +149,7 @@ export default function ContactPage() {
             : 'none'
 
     return (
-        <div style={{ background: '#0c0b09', minHeight: '100vh' }}>
+        <div style={{ background: c.pageBg, minHeight: '100vh' }}>
             <Navbar />
 
             {/* Glow */}
@@ -174,11 +181,11 @@ export default function ContactPage() {
                             <h1 className="font-dm text-white" style={{ fontSize: 26, fontWeight: 700, marginBottom: 12 }}>
                                 {t.successTitle}
                             </h1>
-                            <p className="font-dm" style={{ fontSize: 15, color: 'rgba(255,255,255,0.45)', marginBottom: 40 }}>
+                            <p className="font-dm" style={{ fontSize: 15, color: c.isLight ? '#444444' : 'rgba(255,255,255,0.45)', marginBottom: 40 }}>
                                 {t.successText}
                             </p>
                             <Link href="/" className="font-dm" style={{
-                                fontSize: 13, color: 'rgba(255,255,255,0.25)',
+                                fontSize: 13, color: c.isLight ? '#707070' : 'rgba(255,255,255,0.25)',
                                 textDecoration: 'none', letterSpacing: '0.02em',
                             }}>
                                 ← {t.backHome}
@@ -196,7 +203,7 @@ export default function ContactPage() {
                                 }}>
                                     {t.title}
                                 </h1>
-                                <p className="font-dm" style={{ fontSize: 16, color: 'rgba(255,255,255,0.4)' }}>
+                                <p className="font-dm" style={{ fontSize: 16, color: c.isLight ? '#4a4a4a' : 'rgba(255,255,255,0.4)' }}>
                                     {t.subtitle}
                                 </p>
                                 <div style={{
@@ -215,21 +222,21 @@ export default function ContactPage() {
 
                             {/* Card */}
                             <div style={{
-                                background: '#191714',
-                                border: '1px solid rgba(255,255,255,0.07)',
+                                background: c.cardBg,
+                                border: `1px solid ${c.inputBorder}`,
                                 borderRadius: 24,
-                                padding: '32px 28px',
+                                padding: 'clamp(20px, 5vw, 32px) clamp(16px, 4vw, 28px)',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.3), 0 16px 48px rgba(0,0,0,0.15)',
                             }}>
                                 <form onSubmit={handleSubmit}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
                                         {/* Name + Email */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
                                             <div>
                                                 <label className="font-dm" style={{
                                                     display: 'block', fontSize: 13, fontWeight: 500,
-                                                    color: 'rgba(200,195,185,0.7)', marginBottom: 8,
+                                                    color: labelColor, marginBottom: 8,
                                                 }}>
                                                     {t.name}
                                                     <span style={{ color: '#D94F2A', marginLeft: 2 }}>*</span>
@@ -257,7 +264,7 @@ export default function ContactPage() {
                                             <div>
                                                 <label className="font-dm" style={{
                                                     display: 'block', fontSize: 13, fontWeight: 500,
-                                                    color: 'rgba(200,195,185,0.7)', marginBottom: 8,
+                                                    color: labelColor, marginBottom: 8,
                                                 }}>
                                                     {t.email}
                                                     <span style={{ color: '#D94F2A', marginLeft: 2 }}>*</span>
@@ -287,7 +294,7 @@ export default function ContactPage() {
                                         <div>
                                             <label className="font-dm" style={{
                                                 display: 'block', fontSize: 13, fontWeight: 500,
-                                                color: 'rgba(200,195,185,0.7)', marginBottom: 8,
+                                                color: labelColor, marginBottom: 8,
                                             }}>
                                                 {t.subject}
                                                 <span style={{ color: '#D94F2A', marginLeft: 2 }}>*</span>
@@ -300,11 +307,11 @@ export default function ContactPage() {
                                                     onBlur={() => setFocused(null)}
                                                     style={{
                                                         width: '100%',
-                                                        background: 'rgba(255,255,255,0.04)',
+                                                        background: c.isLight ? '#e6e6ea' : 'rgba(255,255,255,0.04)',
                                                         border: `1px solid ${borderColor('subject')}`,
                                                         boxShadow: shadow('subject'),
                                                         borderRadius: 14,
-                                                        color: form.subject ? '#fff' : 'rgba(255,255,255,0.25)',
+                                                        color: form.subject ? (c.isLight ? '#111' : '#fff') : (c.isLight ? '#999' : 'rgba(255,255,255,0.25)'),
                                                         fontFamily: "'DM Sans', sans-serif",
                                                         fontSize: 14.5,
                                                         height: 52,
@@ -315,9 +322,9 @@ export default function ContactPage() {
                                                         transition: 'border-color 0.2s',
                                                     }}
                                                 >
-                                                    <option value="" disabled style={{ background: '#191714' }}>{t.selectSubject}</option>
+                                                    <option value="" disabled style={{ background: c.cardBg }}>{t.selectSubject}</option>
                                                     {t.subjects.map((s: string, i: number) => (
-                                                        <option key={i} value={s} style={{ background: '#191714' }}>{s}</option>
+                                                        <option key={i} value={s} style={{ background: c.cardBg }}>{s}</option>
                                                     ))}
                                                 </select>
                                                 <svg style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
@@ -332,7 +339,7 @@ export default function ContactPage() {
                                         <div>
                                             <label className="font-dm" style={{
                                                 display: 'block', fontSize: 13, fontWeight: 500,
-                                                color: 'rgba(200,195,185,0.7)', marginBottom: 8,
+                                                color: labelColor, marginBottom: 8,
                                             }}>
                                                 {t.message}
                                                 <span style={{ color: '#D94F2A', marginLeft: 2 }}>*</span>
@@ -346,11 +353,11 @@ export default function ContactPage() {
                                                 onBlur={() => setFocused(null)}
                                                 style={{
                                                     width: '100%',
-                                                    background: 'rgba(255,255,255,0.04)',
+                                                    background: c.isLight ? '#e6e6ea' : 'rgba(255,255,255,0.04)',
                                                     border: `1px solid ${borderColor('message')}`,
                                                     boxShadow: shadow('message'),
                                                     borderRadius: 14,
-                                                    color: '#fff',
+                                                    color: c.isLight ? '#111' : '#fff',
                                                     fontFamily: "'DM Sans', sans-serif",
                                                     fontSize: 14.5,
                                                     padding: 16,
@@ -417,7 +424,7 @@ export default function ContactPage() {
                             {/* Back */}
                             <div style={{ textAlign: 'center', marginTop: 28 }}>
                                 <Link href="/" className="font-dm" style={{
-                                    fontSize: 12, color: 'rgba(255,255,255,0.2)',
+                                    fontSize: 12, color: c.isLight ? '#808080' : 'rgba(255,255,255,0.2)',
                                     textDecoration: 'none',
                                     transition: 'color 0.2s',
                                 }}>
