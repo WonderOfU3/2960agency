@@ -4,7 +4,7 @@ import LegalPage from '@/components/legal/LegalPage'
 
 export default function Page() {
   return (
-    <LegalPage title="Conditions G\u00e9n\u00e9rales d\u2019Utilisation et de Vente \u2013 Restaurateurs" date="Version 1.0 \u2013 En vigueur \u00e0 compter du 8 mai 2026">
+    <LegalPage title="Conditions Générales d'Utilisation et de Vente – Restaurateurs" date="Version 1.0 – En vigueur à compter du 8 mai 2026">
       <h2>Préambule</h2>
 <p>Les présentes Conditions Générales d’Utilisation et de Vente (ci-après les « CGUV ») régissent l’accès et l’utilisation de la plateforme 2960 Agency (ci-après la « Plateforme ») par les restaurateurs et professionnels de la restauration souhaitant bénéficier des services de mise en relation avec des créateurs de contenu Instagram et TikTok proposés par 2960.</p>
 <p>Les CGUV sont conclues entre :</p>
@@ -371,7 +371,7 @@ export default function Page() {
 <p>Dans le cadre de l’utilisation de la Plateforme, 2960 collecte et traite des données à caractère personnel concernant le Restaurateur et les personnes qu’il désigne.</p>
 <p>Ces données sont traitées conformément au Règlement (UE) 2016/679 (RGPD) et à la loi Informatique et Libertés. Les finalités, durées de conservation et droits du Restaurateur sont précisés dans la Politique de Confidentialité accessible depuis la Plateforme.</p>
 <p>La Politique de Confidentialité précise notamment les catégories de données traitées, les finalités, les bases légales, les durées de conservation, les destinataires, les éventuels transferts hors Union européenne, les droits des personnes concernées et les modalités d’exercice de ces droits.</p>
-<p>Le Restaurateur dispose à tout moment d’un droit d’accès, de rectification, d’effacement, de portabilité et d’opposition sur ses données. Il peut exercer ces droits en contactant 2960 par email à l’adresse <a href="mailto:privacy@2960agency.com,">privacy@2960agency.com,</a> ou par tout autre moyen indiqué sur la Plateforme.</p>
+<p>Le Restaurateur dispose à tout moment d’un droit d’accès, de rectification, d’effacement, de portabilité et d’opposition sur ses données. Il peut exercer ces droits en contactant 2960 par email à l’adresse <a href="mailto:privacy@2960agency.com">privacy@2960agency.com,</a> ou par tout autre moyen indiqué sur la Plateforme.</p>
 <p>Dans le cadre des paiements réalisés via la Plateforme, certaines données du Restaurateur et/ou du Créateur peuvent être transmises au Prestataire de paiement aux fins de traitement des paiements, prévention de la fraude, vérification d’identité, lutte contre le blanchiment de capitaux et le financement du terrorisme, gestion des contestations, remboursements et obligations réglementaires.</p>
 <p>Le Prestataire de paiement agit, selon les traitements concernés, en qualité de responsable de traitement indépendant ou de sous-traitant, conformément à ses propres conditions et politiques de confidentialité, accessibles directement auprès de lui.</p>
 <h2>Article 16 – Modalités de communication</h2>

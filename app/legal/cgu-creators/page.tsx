@@ -4,7 +4,7 @@ import LegalPage from '@/components/legal/LegalPage'
 
 export default function Page() {
   return (
-    <LegalPage title="Conditions G\u00e9n\u00e9rales d\u2019Utilisation \u2013 Cr\u00e9ateurs" date="Version 1.0 \u2013 En vigueur \u00e0 compter du 8 mai 2026">
+    <LegalPage title="Conditions Générales d'Utilisation – Créateurs" date="Version 1.0 – En vigueur à compter du 8 mai 2026">
       <h2>Préambule</h2>
 <p>Les présentes Conditions Générales d’Utilisation (ci-après les « CGU Créateurs ») régissent l’accès et l’utilisation de la plateforme 2960 Agency (ci-après la « Plateforme ») par les créateurs de contenu Instagram et TikTok souhaitant collaborer avec les restaurateurs membres de la Plateforme.</p>
 <p>Les CGU Créateurs sont conclues entre :</p>
@@ -265,7 +265,7 @@ export default function Page() {
 <h2>Article 14 – Données personnelles</h2>
 <p>Dans le cadre de l’utilisation de la Plateforme, 2960 collecte et traite des données à caractère personnel concernant le Créateur.</p>
 <p>Ces données sont traitées conformément au Règlement (UE) 2016/679 (RGPD) et à la loi Informatique et Libertés. Les finalités, durées de conservation et droits du Créateur sont précisés dans la Politique de Confidentialité accessible depuis la Plateforme.</p>
-<p>Le Créateur dispose à tout moment d’un droit d’accès, de rectification, d’effacement, de portabilité et d’opposition sur ses données. Il peut exercer ces droits en contactant 2960 par email à l’adresse <a href="mailto:privacy@2960agency.com,">privacy@2960agency.com,</a> ou par tout autre moyen indiqué sur la Plateforme.</p>
+<p>Le Créateur dispose à tout moment d’un droit d’accès, de rectification, d’effacement, de portabilité et d’opposition sur ses données. Il peut exercer ces droits en contactant 2960 par email à l’adresse <a href="mailto:privacy@2960agency.com">privacy@2960agency.com,</a> ou par tout autre moyen indiqué sur la Plateforme.</p>
 <p>Dans le cadre des paiements réalisés via la Plateforme, certaines données du Créateur peuvent être transmises au Prestataire de paiement aux fins de traitement des paiements, prévention de la fraude, vérification d’identité, lutte contre le blanchiment de capitaux et le financement du terrorisme, gestion des contestations, remboursements et obligations réglementaires.</p>
 <p>Le Prestataire de paiement agit, selon les traitements concernés, en qualité de responsable de traitement indépendant ou de sous-traitant, conformément à ses propres conditions et politiques de confidentialité.</p>
 <p>Conformément à la directive (UE) 2021/514 dite « DAC7 », 2960 et/ou son Prestataire de paiement peuvent être tenus de déclarer chaque année à l’administration fiscale française les revenus versés au Créateur via la Plateforme (Primes de viralité, licences d’usage, et autres rémunérations versées en numéraire), ainsi que les données d’identification du Créateur (notamment NIF). Le Créateur reconnaît être informé de cette transmission.</p>

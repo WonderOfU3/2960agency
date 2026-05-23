@@ -4,7 +4,7 @@ import LegalPage from '@/components/legal/LegalPage'
 
 export default function Page() {
   return (
-    <LegalPage title="Mentions L\u00e9gales" date="Version 1.0 \u2013 En vigueur \u00e0 compter du 8 mai 2026">
+    <LegalPage title="Mentions Légales" date="Version 1.0 – En vigueur à compter du 8 mai 2026">
       <p>Conformément aux dispositions de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l’économie numérique (« LCEN »), il est précisé aux utilisateurs du site 2960agency.com l’identité des différents intervenants dans le cadre de sa réalisation et de son suivi.</p>
 <h2>Article 1 – Éditeur du site</h2>
 <p>Le site 2960agency.com est édité par :</p>
@@ -37,7 +37,7 @@ export default function Page() {
 <p>La création de liens vers le site 2960agency.com est autorisée à condition de ne pas porter atteinte à l’image d’Aki Digital Tech ou de la marque 2960 Agency, et de ne pas créer de confusion sur la source du site. Aki Digital Tech se réserve le droit de demander la suppression d’un lien qu’elle estimerait non conforme à ces principes.</p>
 <h2>Article 6 – Données personnelles et cookies</h2>
 <p>Le traitement des données personnelles des utilisateurs du site 2960agency.com et la gestion des cookies sont régis par la Politique de Confidentialité accessible depuis le site, ainsi que par les Conditions Générales d’Utilisation et de Vente applicables aux Restaurateurs et les Conditions Générales d’Utilisation applicables aux Créateurs.</p>
-<p>Pour toute question relative à la protection des données personnelles ou à l’exercice des droits prévus par le Règlement (UE) 2016/679 (« RGPD »), l’utilisateur peut contacter Aki Digital Tech à l’adresse <a href="mailto:privacy@2960agency.com.">privacy@2960agency.com.</a></p>
+<p>Pour toute question relative à la protection des données personnelles ou à l’exercice des droits prévus par le Règlement (UE) 2016/679 (« RGPD »), l’utilisateur peut contacter Aki Digital Tech à l’adresse <a href="mailto:privacy@2960agency.com">privacy@2960agency.com.</a></p>
 <h2>Article 7 – Responsabilité</h2>
 <p>Aki Digital Tech met tout en œuvre pour offrir aux utilisateurs des informations et/ou des outils disponibles et vérifiés sur le site 2960agency.com, mais ne saurait être tenue pour responsable des erreurs, d’une absence de disponibilité des fonctionnalités ou de la présence de virus sur son site.</p>
 <p>Les informations diffusées sur le site sont fournies à titre indicatif. Aki Digital Tech ne saurait garantir l’exactitude, la complétude ou l’actualité des informations diffusées sur son site.</p>

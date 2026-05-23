@@ -4,7 +4,7 @@ import LegalPage from '@/components/legal/LegalPage'
 
 export default function Page() {
   return (
-    <LegalPage title="Politique de Confidentialit\u00e9" date="Version 1.0 \u2013 En vigueur \u00e0 compter du 8 mai 2026">
+    <LegalPage title="Politique de Confidentialité" date="Version 1.0 – En vigueur à compter du 8 mai 2026">
       <h2>Préambule</h2>
 <p>La présente Politique de Confidentialité décrit la manière dont la société Aki Digital Tech (ci-après « 2960 » ou « la Plateforme »), exploitant la marque 2960 Agency, collecte, utilise et protège les données à caractère personnel des utilisateurs de la Plateforme (Restaurateurs et Créateurs).</p>
 <p>Elle est rédigée conformément au Règlement (UE) 2016/679 du 27 avril 2016 (« RGPD ») et à la loi n° 78-17 du 6 janvier 1978 modifiée (loi « Informatique et Libertés »).</p>
@@ -103,7 +103,7 @@ export default function Page() {
   <li>Les clauses contractuelles types adoptées par la Commission européenne</li>
   <li>Le cadre Data Privacy Framework UE-États-Unis lorsque le prestataire y est certifié</li>
 </ul>
-<p>L’utilisateur peut obtenir des précisions sur les transferts éventuels en contactant 2960 à l’adresse <a href="mailto:privacy@2960agency.com.">privacy@2960agency.com.</a></p>
+<p>L’utilisateur peut obtenir des précisions sur les transferts éventuels en contactant 2960 à l’adresse <a href="mailto:privacy@2960agency.com">privacy@2960agency.com.</a></p>
 <h2>Article 6 – Sécurité des données</h2>
 <p>2960 met en œuvre les mesures techniques et organisationnelles appropriées pour garantir la sécurité, l’intégrité et la confidentialité des données personnelles, notamment :</p>
 <ul>
@@ -127,7 +127,7 @@ export default function Page() {
   <li>Droit de définir des directives relatives au sort de ses données après son décès</li>
 </ul>
 <h3>7.1 Comment exercer ses droits</h3>
-<p>L’utilisateur peut exercer ses droits en adressant une demande à <a href="mailto:privacy@2960agency.com,">privacy@2960agency.com,</a> accompagnée d’une copie d’une pièce d’identité en cours de validité en cas de doute raisonnable sur l’identité du demandeur. 2960 répondra dans un délai d’un (1) mois à compter de la réception de la demande, prorogeable de deux (2) mois en cas de demande complexe.</p>
+<p>L’utilisateur peut exercer ses droits en adressant une demande à <a href="mailto:privacy@2960agency.com">privacy@2960agency.com,</a> accompagnée d’une copie d’une pièce d’identité en cours de validité en cas de doute raisonnable sur l’identité du demandeur. 2960 répondra dans un délai d’un (1) mois à compter de la réception de la demande, prorogeable de deux (2) mois en cas de demande complexe.</p>
 <h3>7.2 Droit de réclamation auprès de la CNIL</h3>
 <p>L’utilisateur dispose également du droit d’introduire une réclamation auprès de la Commission Nationale de l’Informatique et des Libertés (CNIL) :</p>
 <p>CNIL – 3 place de Fontenoy, TSA 80715, 75334 Paris CEDEX 07</p>
