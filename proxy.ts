@@ -3,10 +3,11 @@ import { updateSession } from '@/lib/supabase/middleware'
 import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function proxy(request: NextRequest) {
-  // Block /admin routes unless ?key=ADMIN_SECRET is provided
+  // Block /admin routes unless ?key=ADMIN_SECRET or already logged in
   if (request.nextUrl.pathname.startsWith('/admin')) {
     const key = request.nextUrl.searchParams.get('key')
-    if (key !== process.env.ADMIN_SECRET) {
+    const hasSession = request.cookies.get('admin_session')
+    if (key !== process.env.ADMIN_SECRET && !hasSession) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }
