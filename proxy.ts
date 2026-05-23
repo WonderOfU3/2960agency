@@ -3,6 +3,14 @@ import { updateSession } from '@/lib/supabase/middleware'
 import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function proxy(request: NextRequest) {
+  // Block /admin routes unless ?key=ADMIN_SECRET is provided
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    const key = request.nextUrl.searchParams.get('key')
+    if (key !== process.env.ADMIN_SECRET) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
+
   // Rate limiting for API routes
   if (request.nextUrl.pathname.startsWith('/api/')) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
