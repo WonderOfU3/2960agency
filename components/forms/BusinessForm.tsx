@@ -227,7 +227,7 @@ export default function BusinessForm() {
     if (s === 0) {
       if (!form.bizName.trim()) e.bizName = t.req
       if (!form.yourName.trim()) e.yourName = t.req
-      if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) e.email = t.invEmail
+      if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = t.invEmail
       if (!form.phone.trim()) e.phone = t.req
       if (!form.password.trim() || form.password.length < 8) e.password = t.passwordHelp
       if (!form.bizType) e.bizType = t.req
@@ -359,12 +359,12 @@ export default function BusinessForm() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-dm text-white/60 text-[13px]">{t.offerMeal}</span>
                   <input type="number" min="1" max="10" value={form.offerMealMin} onChange={e => set('offerMealMin', e.target.value)}
-                    className="font-dm rounded-lg text-[14px] text-white/90 outline-none text-center"
-                    style={{ height: 44, width: 55, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }} />
+                    className="font-dm rounded-lg text-[14px] text-white/90 outline-none text-center bg-white/[0.04] border border-white/[0.07]"
+                    style={{ height: 44, width: 55 }} />
                   <span className="font-dm text-white/60 text-[13px]">{t.offerMealTo}</span>
                   <input type="number" min="1" max="10" value={form.offerMealMax} onChange={e => set('offerMealMax', e.target.value)}
-                    className="font-dm rounded-lg text-[14px] text-white/90 outline-none text-center"
-                    style={{ height: 44, width: 55, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }} />
+                    className="font-dm rounded-lg text-[14px] text-white/90 outline-none text-center bg-white/[0.04] border border-white/[0.07]"
+                    style={{ height: 44, width: 55 }} />
                   <span className="font-dm text-white/60 text-[13px]">{t.offerMealPersons}</span>
                 </div>
               </div>
@@ -429,17 +429,15 @@ export default function BusinessForm() {
                 <div className="flex items-center gap-3">
                   <input type="number" min="1" max="30" value={form.frequencyCount}
                     onChange={e => set('frequencyCount', e.target.value)}
-                    className="font-dm rounded-lg text-[14px] text-white/90 outline-none text-center"
-                    style={{ height: 44, width: 60, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }} />
-                  <div className="flex gap-1 rounded-lg p-0.5" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    className="font-dm rounded-lg text-[14px] text-white/90 outline-none text-center bg-white/[0.04] border border-white/[0.07]"
+                    style={{ height: 44, width: 60 }} />
+                  <div className="flex gap-1 rounded-lg p-0.5 bg-white/[0.03]">
                     <button type="button" onClick={() => setForm(p => ({ ...p, frequencyUnit: 'week' }))}
-                      className="font-dm text-[12px] font-semibold px-3 py-1.5 rounded-md cursor-pointer transition-all"
-                      style={{ background: form.frequencyUnit === 'week' ? 'rgba(232,71,26,0.15)' : 'transparent', color: form.frequencyUnit === 'week' ? '#E8471A' : 'rgba(255,255,255,0.3)', border: 'none' }}>
+                      className={`font-dm text-[12px] font-semibold px-3 py-1.5 rounded-md cursor-pointer transition-all border-none ${form.frequencyUnit === 'week' ? 'bg-[#D94F2A]/[0.15] text-[#E8471A]' : 'bg-transparent text-white/30'}`}>
                       {t.freqPerWeek}
                     </button>
                     <button type="button" onClick={() => setForm(p => ({ ...p, frequencyUnit: 'month' }))}
-                      className="font-dm text-[12px] font-semibold px-3 py-1.5 rounded-md cursor-pointer transition-all"
-                      style={{ background: form.frequencyUnit === 'month' ? 'rgba(232,71,26,0.15)' : 'transparent', color: form.frequencyUnit === 'month' ? '#E8471A' : 'rgba(255,255,255,0.3)', border: 'none' }}>
+                      className={`font-dm text-[12px] font-semibold px-3 py-1.5 rounded-md cursor-pointer transition-all border-none ${form.frequencyUnit === 'month' ? 'bg-[#D94F2A]/[0.15] text-[#E8471A]' : 'bg-transparent text-white/30'}`}>
                       {t.freqPerMonth}
                     </button>
                   </div>
@@ -471,20 +469,20 @@ export default function BusinessForm() {
                   {form.daySlots.map((slot, i) => (
                     <div key={i} className="flex items-center gap-2 animate-fade-in">
                       <select value={slot.day} onChange={e => updateDaySlot(i, 'day', e.target.value)}
-                        className="font-dm rounded-xl text-[13px] text-white/90 outline-none cursor-pointer flex-shrink-0"
-                        style={{ height: 48, padding: '0 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', minWidth: 110 }}>
+                        className="font-dm rounded-xl text-[13px] text-white/90 outline-none cursor-pointer flex-shrink-0 bg-white/[0.04] border border-white/[0.07]"
+                        style={{ height: 48, padding: '0 12px', minWidth: 110 }}>
                         {DAYS.map(d => <option key={d.value} value={d.value}>{d.label[locale]}</option>)}
                       </select>
 
                       <span className="font-dm text-white/30 text-[12px] flex-shrink-0">{t.from}</span>
                       <input type="time" value={slot.from} onChange={e => updateDaySlot(i, 'from', e.target.value)}
-                        className="font-dm rounded-xl text-[13px] text-white/90 outline-none"
-                        style={{ height: 48, padding: '0 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', width: 100 }} />
+                        className="font-dm rounded-xl text-[13px] text-white/90 outline-none bg-white/[0.04] border border-white/[0.07]"
+                        style={{ height: 48, padding: '0 10px', width: 100 }} />
 
                       <span className="font-dm text-white/30 text-[12px] flex-shrink-0">{t.to}</span>
                       <input type="time" value={slot.to} onChange={e => updateDaySlot(i, 'to', e.target.value)}
-                        className="font-dm rounded-xl text-[13px] text-white/90 outline-none"
-                        style={{ height: 48, padding: '0 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', width: 100 }} />
+                        className="font-dm rounded-xl text-[13px] text-white/90 outline-none bg-white/[0.04] border border-white/[0.07]"
+                        style={{ height: 48, padding: '0 10px', width: 100 }} />
 
                       {form.daySlots.length > 1 && (
                         <button type="button" onClick={() => removeDaySlot(i)}
@@ -512,31 +510,45 @@ export default function BusinessForm() {
                 </label>
                 {errors.maxCreatorsSlot && <p className="font-dm text-[#D94F2A]/70 text-[12px] mb-2">{errors.maxCreatorsSlot}</p>}
                 <div className="flex flex-col gap-2">
-                  <button type="button" onClick={() => set('maxCreatorsSlot', '1')}
-                    className="font-dm text-[13px] text-left px-4 py-3 rounded-xl cursor-pointer transition-all"
-                    style={{ background: form.maxCreatorsSlot === '1' ? 'rgba(232,71,26,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${form.maxCreatorsSlot === '1' ? 'rgba(232,71,26,0.25)' : 'rgba(255,255,255,0.07)'}`, color: form.maxCreatorsSlot === '1' ? '#E8471A' : 'rgba(255,255,255,0.5)', fontWeight: form.maxCreatorsSlot === '1' ? 600 : 400 }}>
-                    {locale === 'fr' ? '1 par créneau' : '1 per slot'}
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => { if (!form.maxCreatorsSlot || form.maxCreatorsSlot === '1' || form.maxCreatorsSlot === 'no_limit') set('maxCreatorsSlot', '2') }}
-                      className="font-dm text-[13px] text-left px-4 py-3 rounded-xl cursor-pointer transition-all flex-1"
-                      style={{ background: form.maxCreatorsSlot !== '1' && form.maxCreatorsSlot !== 'no_limit' && form.maxCreatorsSlot !== '' ? 'rgba(232,71,26,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${form.maxCreatorsSlot !== '1' && form.maxCreatorsSlot !== 'no_limit' && form.maxCreatorsSlot !== '' ? 'rgba(232,71,26,0.25)' : 'rgba(255,255,255,0.07)'}`, color: form.maxCreatorsSlot !== '1' && form.maxCreatorsSlot !== 'no_limit' && form.maxCreatorsSlot !== '' ? '#E8471A' : 'rgba(255,255,255,0.5)', fontWeight: form.maxCreatorsSlot !== '1' && form.maxCreatorsSlot !== 'no_limit' && form.maxCreatorsSlot !== '' ? 600 : 400 }}>
-                      <span className="flex items-center gap-2">
-                        <input type="number" min="2" max="20"
-                          value={form.maxCreatorsSlot !== '1' && form.maxCreatorsSlot !== 'no_limit' && form.maxCreatorsSlot !== '' ? form.maxCreatorsSlot : '2'}
-                          onClick={e => e.stopPropagation()}
-                          onChange={e => { const v = Math.max(2, parseInt(e.target.value) || 2); set('maxCreatorsSlot', String(v)) }}
-                          className="font-dm rounded-lg text-[14px] text-white/90 outline-none text-center"
-                          style={{ height: 32, width: 48, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                        <span>{t.slotCustom}</span>
-                      </span>
-                    </button>
-                  </div>
-                  <button type="button" onClick={() => set('maxCreatorsSlot', 'no_limit')}
-                    className="font-dm text-[13px] text-left px-4 py-3 rounded-xl cursor-pointer transition-all"
-                    style={{ background: form.maxCreatorsSlot === 'no_limit' ? 'rgba(232,71,26,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${form.maxCreatorsSlot === 'no_limit' ? 'rgba(232,71,26,0.25)' : 'rgba(255,255,255,0.07)'}`, color: form.maxCreatorsSlot === 'no_limit' ? '#E8471A' : 'rgba(255,255,255,0.5)', fontWeight: form.maxCreatorsSlot === 'no_limit' ? 600 : 400 }}>
-                    {locale === 'fr' ? 'Pas de limite' : 'No limit'}
-                  </button>
+                  {(() => {
+                    const isCustom = form.maxCreatorsSlot !== '1' && form.maxCreatorsSlot !== 'no_limit' && form.maxCreatorsSlot !== ''
+                    return <>
+                      <button type="button" onClick={() => set('maxCreatorsSlot', '1')}
+                        className={`font-dm text-[13px] text-left px-4 py-3 rounded-xl cursor-pointer transition-all border ${
+                          form.maxCreatorsSlot === '1'
+                            ? 'bg-[#D94F2A]/[0.08] border-[#D94F2A]/25 text-[#E8471A] font-semibold'
+                            : 'bg-white/[0.04] border-white/[0.07] text-white/50'
+                        }`}>
+                        {locale === 'fr' ? '1 par créneau' : '1 per slot'}
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => { if (!isCustom) set('maxCreatorsSlot', '2') }}
+                          className={`font-dm text-[13px] text-left px-4 py-3 rounded-xl cursor-pointer transition-all flex-1 border ${
+                            isCustom
+                              ? 'bg-[#D94F2A]/[0.08] border-[#D94F2A]/25 text-[#E8471A] font-semibold'
+                              : 'bg-white/[0.04] border-white/[0.07] text-white/50'
+                          }`}>
+                          <span className="flex items-center gap-2">
+                            <input type="number" min="2" max="20"
+                              value={isCustom ? form.maxCreatorsSlot : '2'}
+                              onClick={e => e.stopPropagation()}
+                              onChange={e => { const v = Math.max(2, parseInt(e.target.value) || 2); set('maxCreatorsSlot', String(v)) }}
+                              className="font-dm rounded-lg text-[14px] text-white/90 outline-none text-center bg-white/[0.07] border border-white/[0.10]"
+                              style={{ height: 32, width: 48 }} />
+                            <span>{t.slotCustom}</span>
+                          </span>
+                        </button>
+                      </div>
+                      <button type="button" onClick={() => set('maxCreatorsSlot', 'no_limit')}
+                        className={`font-dm text-[13px] text-left px-4 py-3 rounded-xl cursor-pointer transition-all border ${
+                          form.maxCreatorsSlot === 'no_limit'
+                            ? 'bg-[#D94F2A]/[0.08] border-[#D94F2A]/25 text-[#E8471A] font-semibold'
+                            : 'bg-white/[0.04] border-white/[0.07] text-white/50'
+                        }`}>
+                        {locale === 'fr' ? 'Pas de limite' : 'No limit'}
+                      </button>
+                    </>
+                  })()}
                 </div>
               </div>
               <Divider />

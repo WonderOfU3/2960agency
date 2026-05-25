@@ -240,7 +240,7 @@ export default function CreatorForm() {
       if (!/^[a-zA-Z0-9_]*$/.test(form.username)) e.username = t.usernameHint
       if (!form.firstName.trim()) e.firstName = t.req
       if (!form.lastName.trim())  e.lastName  = t.req
-      if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) e.email = t.invEmail
+      if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = t.invEmail
       if (!form.phone.trim()) e.phone = t.req
       if (!form.password.trim() || form.password.length < 8) e.password = t.passwordHelp
       if (!form.tiktok.trim()) e.tiktok = t.needSocial

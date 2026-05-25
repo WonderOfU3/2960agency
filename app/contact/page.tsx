@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 import { useLanguage } from '@/context/LanguageContext'
 import { useTheme } from '@/context/ThemeContext'
 
@@ -436,6 +437,8 @@ export default function ContactPage() {
 
                 </div>
             </div>
+
+            <Footer />
 
             <div className="grain-overlay fixed inset-0 pointer-events-none" style={{ zIndex: 9998 }} />
         </div>

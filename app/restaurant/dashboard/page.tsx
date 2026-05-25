@@ -499,15 +499,17 @@ export default function RestaurantDashboard() {
             {/* Publish toggle */}
             <div className="rounded-2xl p-5 mb-4" style={{
               background: isPublished ? 'rgba(74,222,128,0.04)' : c.cardBg,
-              border: `1px solid ${isPublished ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.06)'}`,
+              border: `1px solid ${isPublished ? 'rgba(74,222,128,0.15)' : c.divider}`,
             }}>
               <label className="flex items-center gap-3 cursor-pointer">
                 <div onClick={handleTogglePublish}
                   className="w-12 h-6 rounded-full relative transition-all flex-shrink-0" style={{
-                    background: isPublished ? '#4ade80' : 'rgba(255,255,255,0.1)',
+                    background: isPublished ? '#4ade80' : 'var(--input-bg, rgba(255,255,255,0.1))',
+                    border: isPublished ? 'none' : '1px solid var(--input-border, rgba(255,255,255,0.15))',
                   }}>
                   <div className="w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all" style={{
                     left: isPublished ? 26 : 2,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                   }} />
                 </div>
                 <div>
@@ -693,7 +695,7 @@ export default function RestaurantDashboard() {
                             <p className="font-dm text-white/30 text-[10px] uppercase tracking-wider mb-1.5">{t.recurring}</p>
                             <div className="space-y-1.5">
                               {recurring.map(s => (
-                                <div key={s.id} className="flex items-center justify-between rounded-lg px-3 py-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                <div key={s.id} className="flex items-center justify-between rounded-lg px-3 py-2 bg-white/[0.03] border border-white/[0.06]">
                                   <span className="font-dm text-white/60 text-[12px]">{DAYS[s.day_of_week]} {s.start_time?.slice(0, 5)}-{s.end_time?.slice(0, 5)} <span className="text-white/30">(max {s.max_bookings})</span></span>
                                   <button onClick={() => handleDeleteSlot(s.id)} className="font-dm text-red-400/60 hover:text-red-400 text-[18px] cursor-pointer" style={{ background: 'none', border: 'none' }}>&times;</button>
                                 </div>
@@ -773,8 +775,8 @@ export default function RestaurantDashboard() {
           <div style={{ maxWidth: 720 }}>
             {/* Auto-accept toggle */}
             <label className="flex items-center gap-3 mb-5 cursor-pointer">
-              <div onClick={toggleAutoAccept} className="w-10 h-5 rounded-full relative transition-all" style={{ background: autoAccept ? '#E8471A' : 'rgba(255,255,255,0.1)' }}>
-                <div className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all" style={{ left: autoAccept ? 22 : 2 }} />
+              <div onClick={toggleAutoAccept} className="w-10 h-5 rounded-full relative transition-all" style={{ background: autoAccept ? '#E8471A' : 'var(--input-bg, rgba(255,255,255,0.1))', border: autoAccept ? 'none' : '1px solid var(--input-border, rgba(255,255,255,0.15))' }}>
+                <div className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all" style={{ left: autoAccept ? 22 : 2, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
               </div>
               <span className="font-dm text-white/60 text-[13px]">{autoAccept ? t.autoAccept : t.autoAcceptOff}</span>
             </label>

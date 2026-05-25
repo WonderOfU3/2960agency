@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 
 const Hero       = dynamic(() => import('@/components/Hero'),       { ssr: false })
 const HowItWorks = dynamic(() => import('@/components/HowItWorks'), { ssr: false })
@@ -12,6 +13,7 @@ export default function HomePage() {
       <Navbar />
       <Hero />
       <HowItWorks />
+      <Footer />
     </>
   )
 }

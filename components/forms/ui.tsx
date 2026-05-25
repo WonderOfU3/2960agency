@@ -199,6 +199,10 @@ export function TextField({ label, value, onChange, placeholder, error, required
   placeholder?: string; error?: string; required?: boolean
   locale?: Locale; type?: string; prefix?: string; autoComplete?: string; hint?: string
 }) {
+  const [showPassword, setShowPassword] = useState(false)
+  const isPassword = type === 'password'
+  const inputType = isPassword && showPassword ? 'text' : type
+
   return (
     <div>
       <FieldLabel label={label} required={required} locale={locale} />
@@ -208,12 +212,30 @@ export function TextField({ label, value, onChange, placeholder, error, required
           <span className="absolute top-1/2 -translate-y-1/2 font-dm text-white/20 text-[14px] pointer-events-none"
             style={{ left: 16 }}>{prefix}</span>
         )}
-        <input type={type} value={value} onChange={e => onChange(e.target.value)}
+        <input type={inputType} value={value} onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
           className={inputClasses(!!error)}
-          style={{ height: 56, padding: prefix ? '0 16px 0 34px' : '0 16px' }}
+          style={{ height: 56, padding: prefix ? '0 16px 0 34px' : isPassword ? '0 48px 0 16px' : '0 16px' }}
         />
+        {isPassword && (
+          <button type="button" onClick={() => setShowPassword(p => !p)}
+            className="absolute top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
+            style={{ right: 16, background: 'none', border: 'none', padding: 0 }}
+            tabIndex={-1}>
+            {showPassword ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            )}
+          </button>
+        )}
       </div>
       {error && <ErrorMsg>{error}</ErrorMsg>}
     </div>
