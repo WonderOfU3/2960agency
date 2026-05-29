@@ -127,6 +127,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Tu as déjà une réservation pour ce restaurant ce jour-là' }, { status: 400 })
     }
 
+    // Check weekly limit (per ISO week: Monday–Sunday)
+    if (resto.max_bookings_per_week != null) {
+      // Calculate Monday of the booking's week
+      const dayOfWeek = date.getDay() // 0=Sun..6=Sat
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+      const weekStart = new Date(date)
+      weekStart.setDate(date.getDate() + mondayOffset)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 6)
+      const wsStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`
+      const weStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, '0')}-${String(weekEnd.getDate()).padStart(2, '0')}`
+
+      const weekCount = await sql`
+        SELECT COUNT(*) as cnt FROM bookings
+        WHERE restaurant_id = ${restaurantId}
+          AND booking_date >= ${wsStr}::date AND booking_date <= ${weStr}::date
+          AND status != 'cancelled' AND status != 'refused'
+      `
+      if (parseInt(weekCount[0].cnt) >= resto.max_bookings_per_week) {
+        return NextResponse.json({
+          error: 'La limite de collabs pour cette semaine est atteinte. Essaie une autre semaine.',
+        }, { status: 400 })
+      }
+    }
+
     // Check auto_accept and billing
     const autoAccept = resto.auto_accept !== false
     let bookingStatus = 'pending' // default: restaurant must manually accept

@@ -17,6 +17,7 @@ const T = {
     settingsProfile: 'Informations', settingsSocials: 'Réseaux sociaux', settingsPassword: 'Changer le mot de passe', settingsEmail: "Changer l'email",
     currentPassword: 'Mot de passe actuel', newPassword: 'Nouveau mot de passe', save: 'Enregistrer', saved: 'Enregistré !', cancel: 'Annuler',
     autoAccept: 'Accepter automatiquement les collabs', autoAcceptOff: 'Validation manuelle des collabs',
+    weeklyLimit: 'Limite de collabs par semaine', weeklyLimitOff: 'Pas de limite hebdomadaire', weeklyLimitHint: 'Si activé, les créateurs ne pourront plus réserver pour une semaine où la limite est atteinte', perWeek: '/semaine',
     manageSlots: 'Gérer les créneaux', recurring: 'Chaque semaine', specificDate: 'Date précise',
     addSlot: '+ Ajouter', noSlots: 'Aucun créneau configuré', offerLabel: 'Offre pour les créateurs',
     saveOffer: 'Enregistrer',
@@ -76,6 +77,7 @@ const T = {
     settingsProfile: 'Information', settingsSocials: 'Social media', settingsPassword: 'Change password', settingsEmail: 'Change email',
     currentPassword: 'Current password', newPassword: 'New password', save: 'Save', saved: 'Saved!', cancel: 'Cancel',
     autoAccept: 'Auto-accept collabs', autoAcceptOff: 'Manual collab validation',
+    weeklyLimit: 'Weekly collab limit', weeklyLimitOff: 'No weekly limit', weeklyLimitHint: 'When enabled, creators cannot book a week that has reached the limit', perWeek: '/week',
     manageSlots: 'Manage time slots', recurring: 'Every week', specificDate: 'Specific date',
     addSlot: '+ Add', noSlots: 'No time slots configured', offerLabel: 'Offer for creators',
     saveOffer: 'Save',
@@ -190,6 +192,7 @@ export default function RestaurantDashboard() {
   const [creatorPhotoIdx, setCreatorPhotoIdx] = useState<Record<number, number>>({})
   const [subInfo, setSubInfo] = useState<SubInfo | null>(null)
   const [autoAccept, setAutoAccept] = useState(true)
+  const [maxPerWeek, setMaxPerWeek] = useState<number | null>(null)
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
   const [cancelStep, setCancelStep] = useState<0 | 1 | 2>(0) // 0=closed, 1=benefits, 2=reason
   const [cancelReason, setCancelReason] = useState('')
@@ -262,6 +265,7 @@ export default function RestaurantDashboard() {
       setMyPhotos(colData.photos || [])
       setIsPublished(colData.isPublished || false)
       setDirectives(colData.directives || '')
+      setMaxPerWeek(colData.maxPerWeek ?? null)
 
       // Get auto_accept from cookie session
       try {
@@ -305,6 +309,14 @@ export default function RestaurantDashboard() {
     await fetch('/api/restaurant/settings', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ autoAccept: newVal }),
+    })
+  }
+
+  const saveMaxPerWeek = async (val: number | null) => {
+    setMaxPerWeek(val)
+    await fetch('/api/restaurant/settings', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ maxPerWeek: val }),
     })
   }
 
@@ -780,6 +792,37 @@ export default function RestaurantDashboard() {
               </div>
               <span className="font-dm text-white/60 text-[13px]">{autoAccept ? t.autoAccept : t.autoAcceptOff}</span>
             </label>
+
+            {/* Weekly limit setting */}
+            <div className="mb-5 rounded-2xl p-4" style={{ background: c.cardBg, border: `1px solid ${c.divider}` }}>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div onClick={() => saveMaxPerWeek(maxPerWeek === null ? 3 : null)}
+                  className="w-10 h-5 rounded-full relative transition-all" style={{
+                    background: maxPerWeek !== null ? '#E8471A' : 'var(--input-bg, rgba(255,255,255,0.1))',
+                    border: maxPerWeek !== null ? 'none' : '1px solid var(--input-border, rgba(255,255,255,0.15))',
+                  }}>
+                  <div className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all" style={{
+                    left: maxPerWeek !== null ? 22 : 2, boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }} />
+                </div>
+                <div>
+                  <span className="font-dm font-semibold text-[13px]" style={{ color: c.text }}>{maxPerWeek !== null ? t.weeklyLimit : t.weeklyLimitOff}</span>
+                  <span className="font-dm text-white/30 text-[11px] block">{t.weeklyLimitHint}</span>
+                </div>
+              </label>
+              {maxPerWeek !== null && (
+                <div className="flex items-center gap-3 mt-3 ml-0 sm:ml-[52px]">
+                  <button onClick={() => saveMaxPerWeek(Math.max(1, (maxPerWeek || 3) - 1))}
+                    className="font-dm w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer text-[16px]"
+                    style={{ background: c.inputBg, border: `1px solid ${c.inputBorder}`, color: c.text }}>−</button>
+                  <span className="font-dm text-[18px] font-bold" style={{ color: '#E8471A', minWidth: 24, textAlign: 'center' }}>{maxPerWeek}</span>
+                  <button onClick={() => saveMaxPerWeek(Math.min(50, (maxPerWeek || 3) + 1))}
+                    className="font-dm w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer text-[16px]"
+                    style={{ background: c.inputBg, border: `1px solid ${c.inputBorder}`, color: c.text }}>+</button>
+                  <span className="font-dm text-white/40 text-[12px]">{t.perWeek}</span>
+                </div>
+              )}
+            </div>
 
             {bookings.length === 0 ? (
               <p className="font-dm text-white/30 text-center py-12">{t.noCollabs}</p>

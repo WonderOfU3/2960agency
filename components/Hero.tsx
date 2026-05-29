@@ -131,9 +131,9 @@ interface Cfg {
 }
 
 const CFGS: Record<BP, Cfg> = {
-  desktop: { globeR: 380, landDots: 2800, oceanDots: 600, pinN: 42, cardN: 12, end: '+=400%', tilt: -0.35, cardScale: 1,    posScale: 1    },
-  tablet:  { globeR: 290, landDots: 1800, oceanDots: 400, pinN: 28, cardN: 8,  end: '+=350%', tilt: -0.30, cardScale: 0.75, posScale: 0.80 },
-  mobile:  { globeR: 160, landDots: 1000, oceanDots: 250, pinN: 14, cardN: 12, end: '+=300%', tilt: -0.25, cardScale: 0.55, posScale: 0.60 },
+  desktop: { globeR: 380, landDots: 2000, oceanDots: 400, pinN: 42, cardN: 12, end: '+=400%', tilt: -0.35, cardScale: 1,    posScale: 1    },
+  tablet:  { globeR: 290, landDots: 1400, oceanDots: 300, pinN: 28, cardN: 8,  end: '+=350%', tilt: -0.30, cardScale: 0.75, posScale: 0.80 },
+  mobile:  { globeR: 160, landDots: 800,  oceanDots: 150, pinN: 14, cardN: 12, end: '+=300%', tilt: -0.25, cardScale: 0.55, posScale: 0.60 },
 }
 
 function getBP(): BP {
@@ -212,7 +212,7 @@ export default function Hero() {
             theta: 0.3,
             dark: isLt ? 0 : 1,
             diffuse: isLt ? 1.2 : 0.4,
-            mapSamples: 24000,
+            mapSamples: 16000,
             baseColor: isLt ? [0.93, 0.93, 0.96] : [0.08, 0.07, 0.06],
             mapBrightness: isLt ? 2 : 8,
             markerColor: [1, 0.35, 0.1],
@@ -369,7 +369,7 @@ export default function Hero() {
                     }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={cd.img} alt="" loading="eager" draggable={false}
+                  <img src={cd.img} alt="" loading="lazy" decoding="async" draggable={false}
                        className="w-full h-full object-cover select-none" />
                 </div>
             ))}

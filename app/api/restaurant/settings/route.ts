@@ -9,10 +9,16 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    const { autoAccept } = await req.json()
+    const body = await req.json()
 
-    if (typeof autoAccept === 'boolean') {
-      await sql`UPDATE restaurants SET auto_accept = ${autoAccept} WHERE id = ${session.restaurantId}`
+    if (typeof body.autoAccept === 'boolean') {
+      await sql`UPDATE restaurants SET auto_accept = ${body.autoAccept} WHERE id = ${session.restaurantId}`
+      return NextResponse.json({ success: true })
+    }
+
+    if ('maxPerWeek' in body) {
+      const val = body.maxPerWeek === null || body.maxPerWeek === '' ? null : Math.max(1, Math.min(50, parseInt(body.maxPerWeek) || 3))
+      await sql`UPDATE restaurants SET max_bookings_per_week = ${val} WHERE id = ${session.restaurantId}`
       return NextResponse.json({ success: true })
     }
 
