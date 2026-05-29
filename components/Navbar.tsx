@@ -11,18 +11,10 @@ import ThemeToggle from '@/components/ThemeToggle'
 export default function Navbar() {
   const { t } = useLanguage()
   const { c } = useTheme()
-  const [sm, setSm] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
   const isHome = pathname === '/'
-
-  useEffect(() => {
-    const fn = () => { setSm(window.innerWidth < 768); setMenuOpen(false) }
-    fn()
-    window.addEventListener('resize', fn)
-    return () => window.removeEventListener('resize', fn)
-  }, [])
 
   // Close menu on outside click
   useEffect(() => {
@@ -43,10 +35,6 @@ export default function Navbar() {
 
   const pillBorder = c.isLight ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.35)'
   const pillColor = c.isLight ? '#222' : '#fff'
-
-  const btnStyle: React.CSSProperties = sm
-      ? { height: 28, paddingLeft: 10, paddingRight: 10, fontSize: 10, fontWeight: 500, letterSpacing: '0.04em' }
-      : { height: 38, paddingLeft: 14, paddingRight: 14, fontSize: 13, fontWeight: 500, letterSpacing: '0.04em' }
 
   const handleHiwClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (isHome) {
@@ -72,52 +60,50 @@ export default function Navbar() {
   })
 
   return (
-      <>
+      <div>
       <nav
           className="fixed left-0 right-0 z-50 flex items-center justify-between pointer-events-none nav-responsive"
           style={{ top: 14 }}
       >
-        {/* Logo */}
+        {/* Logo — responsive via CSS */}
         <Link
             href="/"
-            className="font-buster text-white pointer-events-auto select-none shrink-0"
-            style={{ fontSize: sm ? 11 : 14, letterSpacing: '0.02em', textDecoration: 'none' }}
+            className="font-buster text-white pointer-events-auto select-none shrink-0 text-[11px] md:text-[14px]"
+            style={{ letterSpacing: '0.02em', textDecoration: 'none' }}
         >
           2960 AGENCY
         </Link>
 
         {/* Right */}
-        <div className="flex items-center pointer-events-auto" style={{ gap: sm ? 6 : 8 }}>
+        <div className="flex items-center pointer-events-auto gap-[6px] md:gap-[8px]">
 
-          {/* Nav links — desktop only */}
-          {!sm && (
-              <div className="flex items-center" style={{ gap: 12, marginRight: 12 }}>
-                <a href={isHome ? '#comment-ca-marche' : '/#comment-ca-marche'}
-                   onClick={handleHiwClick}
-                   className="font-dm hover:text-white/60 transition-colors duration-200 whitespace-nowrap"
-                   style={navLinkStyle(false)}
-                >
-                  {t('nav_howItWorks')}
-                </a>
-                <span style={{ fontSize: 6, color: c.isLight ? '#ccc' : 'rgba(255,255,255,0.2)' }}>•</span>
-                <Link href="/tarifs" className="font-dm hover:text-white/60 transition-colors duration-200 whitespace-nowrap" style={navLinkStyle(pathname === '/tarifs')}>
-                  {t('nav_pricing')}
-                </Link>
-                <span className="text-white/20" style={{ fontSize: 6 }}>•</span>
-                <Link href="/contact" className="font-dm hover:text-white/60 transition-colors duration-200 whitespace-nowrap" style={navLinkStyle(pathname === '/contact')}>
-                  {t('nav_contact')}
-                </Link>
-              </div>
-          )}
+          {/* Nav links — hidden on mobile, visible on md+ */}
+          <div className="hidden md:flex items-center" style={{ gap: 12, marginRight: 12 }}>
+            <a href={isHome ? '#comment-ca-marche' : '/#comment-ca-marche'}
+               onClick={handleHiwClick}
+               className="font-dm hover:text-white/60 transition-colors duration-200 whitespace-nowrap"
+               style={navLinkStyle(false)}
+            >
+              {t('nav_howItWorks')}
+            </a>
+            <span style={{ fontSize: 6, color: c.isLight ? '#ccc' : 'rgba(255,255,255,0.2)' }}>•</span>
+            <Link href="/tarifs" className="font-dm hover:text-white/60 transition-colors duration-200 whitespace-nowrap" style={navLinkStyle(pathname === '/tarifs')}>
+              {t('nav_pricing')}
+            </Link>
+            <span className="text-white/20" style={{ fontSize: 6 }}>•</span>
+            <Link href="/contact" className="font-dm hover:text-white/60 transition-colors duration-200 whitespace-nowrap" style={navLinkStyle(pathname === '/contact')}>
+              {t('nav_contact')}
+            </Link>
+          </div>
 
-          {/* Login buttons */}
-          <Link href="/creator/login" className={pill} style={{
-            ...btnStyle, background: '#E8471A', border: '1px solid #E8471A', color: '#fff', textDecoration: 'none',
+          {/* Login buttons — responsive via CSS classes */}
+          <Link href="/creator/login" className={`${pill} nav-pill-sm md:nav-pill-md`} style={{
+            background: '#E8471A', border: '1px solid #E8471A', color: '#fff', textDecoration: 'none',
           }}>
             {t('nav_login')}
           </Link>
-          <Link href="/restaurant/login" className={pill} style={{
-            ...btnStyle, border: pillBorder, color: pillColor, textDecoration: 'none',
+          <Link href="/restaurant/login" className={`${pill} nav-pill-sm md:nav-pill-md`} style={{
+            border: pillBorder, color: pillColor, textDecoration: 'none',
           }}>
             {t('nav_loginResto')}
           </Link>
@@ -126,36 +112,34 @@ export default function Navbar() {
           <ThemeToggle />
           <LanguageToggle />
 
-          {/* Hamburger — mobile only */}
-          {sm && (
-            <button
-              onClick={() => setMenuOpen(v => !v)}
-              className="flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer"
-              style={{
-                width: 28, height: 28,
-                background: c.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)',
-                border: `1px solid ${c.isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)'}`,
-              }}
-            >
-              {menuOpen ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.isLight ? '#222' : '#fff'} strokeWidth="2" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.isLight ? '#222' : '#fff'} strokeWidth="2" strokeLinecap="round">
-                  <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-              )}
-            </button>
-          )}
+          {/* Hamburger — visible on mobile, hidden on md+ */}
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            className="md:hidden flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer"
+            style={{
+              width: 28, height: 28,
+              background: c.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)',
+              border: `1px solid ${c.isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)'}`,
+            }}
+          >
+            {menuOpen ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.isLight ? '#222' : '#fff'} strokeWidth="2" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.isLight ? '#222' : '#fff'} strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            )}
+          </button>
         </div>
       </nav>
 
       {/* Mobile dropdown menu */}
-      {sm && menuOpen && (
+      {menuOpen && (
         <div
           ref={menuRef}
-          className="fixed z-50 pointer-events-auto"
+          className="fixed z-50 pointer-events-auto md:hidden"
           style={{
             top: 52, right: 14,
             background: c.isLight ? 'rgba(255,255,255,0.95)' : 'rgba(20,20,18,0.95)',
@@ -185,6 +169,6 @@ export default function Navbar() {
           </Link>
         </div>
       )}
-      </>
+      </div>
   )
 }

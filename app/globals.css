@@ -226,6 +226,24 @@ html[data-theme="light"] {
   }
 }
 
+/* Nav pill sizes — mobile-first */
+.nav-pill-sm {
+  height: 28px;
+  padding-left: 10px;
+  padding-right: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+@media (min-width: 768px) {
+  .nav-pill-sm {
+    height: 38px;
+    padding-left: 14px;
+    padding-right: 14px;
+    font-size: 13px;
+  }
+}
+
 /* ═══════════════════════════════════════
    FORM SYSTEM
 ═══════════════════════════════════════ */
