@@ -228,10 +228,10 @@ html[data-theme="light"] {
 
 /* Nav pill sizes — mobile-first */
 .nav-pill-sm {
-  height: 28px;
-  padding-left: 10px;
-  padding-right: 10px;
-  font-size: 10px;
+  height: 24px;
+  padding-left: 7px;
+  padding-right: 7px;
+  font-size: 9px;
   font-weight: 500;
   letter-spacing: 0.04em;
 }

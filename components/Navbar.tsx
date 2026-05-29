@@ -81,7 +81,7 @@ export default function Navbar() {
         </Link>
 
         {/* Right */}
-        <div className="flex items-center pointer-events-auto gap-[6px] md:gap-[8px]">
+        <div className="flex items-center pointer-events-auto gap-[4px] md:gap-[8px]">
 
           {/* Nav links — desktop only */}
           <div className="hidden md:flex items-center" style={{ gap: 12, marginRight: 12 }}>
@@ -102,41 +102,38 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Login buttons */}
-          <Link href="/creator/login" className={`${pill} nav-pill-sm md:nav-pill-md`} style={{
+          {/* Login buttons — always visible */}
+          <Link href="/creator/login" className={`${pill} nav-pill-sm`} style={{
             background: '#E8471A', border: '1px solid #E8471A', color: '#fff', textDecoration: 'none',
           }}>
             {t('nav_login')}
           </Link>
-          <Link href="/restaurant/login" className={`${pill} nav-pill-sm md:nav-pill-md`} style={{
+          <Link href="/restaurant/login" className={`${pill} nav-pill-sm`} style={{
             border: pillBorder, color: pillColor, textDecoration: 'none',
           }}>
             {t('nav_loginResto')}
           </Link>
 
-          {/* Theme + Lang toggles — desktop only in navbar */}
-          <div className="hidden md:flex items-center gap-[8px]">
-            <ThemeToggle />
-            <LanguageToggle />
-          </div>
+          {/* Theme + Lang toggles — always visible */}
+          <ThemeToggle />
+          <LanguageToggle />
 
           {/* Hamburger — mobile only */}
           <button
             ref={btnRef}
             onClick={() => setMenuOpen(v => !v)}
-            className="md:hidden flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer"
+            className="md:hidden flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer w-[26px] h-[26px] md:w-[28px] md:h-[28px]"
             style={{
-              width: 28, height: 28,
               background: c.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)',
               border: `1px solid ${c.isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)'}`,
             }}
           >
             {menuOpen ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.isLight ? '#222' : '#fff'} strokeWidth="2" strokeLinecap="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c.isLight ? '#222' : '#fff'} strokeWidth="2.5" strokeLinecap="round">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.isLight ? '#222' : '#fff'} strokeWidth="2" strokeLinecap="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c.isLight ? '#222' : '#fff'} strokeWidth="2.5" strokeLinecap="round">
                 <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             )}
@@ -155,7 +152,7 @@ export default function Navbar() {
             backdropFilter: 'blur(16px)',
             border: `1px solid ${c.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'}`,
             borderRadius: 16,
-            padding: '8px 20px 12px',
+            padding: '8px 20px',
             minWidth: 180,
             boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
           }}
@@ -176,12 +173,6 @@ export default function Navbar() {
           <Link href="/contact" className="font-dm block" style={mobileNavLinkStyle(pathname === '/contact')}>
             {t('nav_contact')}
           </Link>
-          {divider}
-          {/* Theme + Lang toggles inside mobile menu */}
-          <div className="flex items-center gap-3 pt-2">
-            <ThemeToggle />
-            <LanguageToggle />
-          </div>
         </div>
       )}
       </div>
