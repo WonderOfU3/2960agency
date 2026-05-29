@@ -141,6 +141,13 @@ function getBP(): BP {
   return w < 768 ? 'mobile' : w < 1024 ? 'tablet' : 'desktop'
 }
 
+/* ── Safari / low-perf detection ─────────────────────────── */
+function isSafari(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent
+  return /Safari/.test(ua) && !/Chrome/.test(ua)
+}
+
 /* ── Component ───────────────────────────────────────────── */
 export default function Hero() {
   const heroRef   = useRef<HTMLDivElement>(null)
@@ -152,6 +159,7 @@ export default function Hero() {
   const { t } = useLanguage()
   const { c } = useTheme()
   const [bp, setBp] = useState<BP>(getBP)
+  const safari = useRef(isSafari())
   const cfg  = CFGS[bp]
   const cards = useMemo(() => ALL_CARDS.slice(0, cfg.cardN), [cfg.cardN])
 
@@ -203,16 +211,19 @@ export default function Hero() {
           }))
 
         let globe: ReturnType<typeof createGlobe>
+        const dpr = safari.current ? 1 : Math.min(window.devicePixelRatio, 2)
+        const samples = safari.current ? 10000 : 16000
+
         try {
           globe = createGlobe(cvs, {
-            devicePixelRatio: Math.min(window.devicePixelRatio, 2),
+            devicePixelRatio: dpr,
             width: width * 2,
             height: width * 2,
             phi: 0,
             theta: 0.3,
             dark: isLt ? 0 : 1,
             diffuse: isLt ? 1.2 : 0.4,
-            mapSamples: 16000,
+            mapSamples: samples,
             baseColor: isLt ? [0.93, 0.93, 0.96] : [0.08, 0.07, 0.06],
             mapBrightness: isLt ? 2 : 8,
             markerColor: [1, 0.35, 0.1],
@@ -342,8 +353,8 @@ export default function Hero() {
           <div
               className="absolute z-10 pointer-events-none"
               style={{
-                width: isM ? '110vw' : isT ? '700px' : '950px',
-                height: isM ? '110vw' : isT ? '700px' : '950px',
+                width: isM ? '110vw' : isT ? 'min(700px, 90vh)' : 'min(850px, 90vh)',
+                height: isM ? '110vw' : isT ? 'min(700px, 90vh)' : 'min(850px, 90vh)',
                 left: '50%', top: '50%',
                 transform: 'translate(-50%, -50%)',
               }}
