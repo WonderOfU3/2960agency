@@ -54,7 +54,7 @@ export async function PATCH(req: NextRequest) {
     if (action === 'cancel') {
       // Only the creator who owns the booking can cancel
       const booking = await sql`
-        SELECT id, status, booking_date FROM bookings
+        SELECT id, status, booking_date, restaurant_id FROM bookings
         WHERE id = ${bookingId} AND creator_id = ${session.id}
       `
       if (booking.length === 0) {
@@ -66,7 +66,26 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: 'Cette réservation est déjà annulée' }, { status: 400 })
       }
 
+      const wasConfirmed = b.status === 'confirmed'
+
       await sql`UPDATE bookings SET status = 'cancelled' WHERE id = ${bookingId}`
+
+      // Restore billing counters if the booking was confirmed
+      if (wasConfirmed) {
+        // Check if restaurant is on trial — decrement trial_collabs_used
+        const resto = await sql`
+          SELECT trial_started_at, trial_ends_at, trial_collabs_used FROM restaurants WHERE id = ${b.restaurant_id}
+        `
+        if (resto.length > 0 && resto[0].trial_started_at && resto[0].trial_collabs_used > 0) {
+          await sql`
+            UPDATE restaurants SET trial_collabs_used = GREATEST(0, trial_collabs_used - 1)
+            WHERE id = ${b.restaurant_id}
+          `
+        }
+
+        // Re-sync collab_usage (recount confirmed bookings for that month)
+        await syncCollabUsage(b.restaurant_id, b.booking_date)
+      }
 
       return NextResponse.json({ success: true })
     }

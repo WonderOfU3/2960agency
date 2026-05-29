@@ -180,7 +180,23 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (action === 'refuse') {
+      const wasConfirmed = b.status === 'confirmed'
       await sql`UPDATE bookings SET status = 'refused' WHERE id = ${bookingId}`
+
+      // Restore billing counters if it was confirmed
+      if (wasConfirmed) {
+        const resto = await sql`
+          SELECT trial_started_at, trial_collabs_used FROM restaurants WHERE id = ${session.restaurantId}
+        `
+        if (resto.length > 0 && resto[0].trial_started_at && resto[0].trial_collabs_used > 0) {
+          await sql`
+            UPDATE restaurants SET trial_collabs_used = GREATEST(0, trial_collabs_used - 1)
+            WHERE id = ${session.restaurantId}
+          `
+        }
+        await syncCollabUsage(session.restaurantId, b.booking_date)
+      }
+
       await notifyBookingRefused(b.creator_id, b.restaurant_name)
       return NextResponse.json({ success: true })
     }
