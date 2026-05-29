@@ -13,6 +13,7 @@ export default function Navbar() {
   const { c } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
   const pathname = usePathname()
   const isHome = pathname === '/'
 
@@ -20,7 +21,10 @@ export default function Navbar() {
   useEffect(() => {
     if (!menuOpen) return
     const fn = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)
+      ) setMenuOpen(false)
     }
     document.addEventListener('mousedown', fn)
     return () => document.removeEventListener('mousedown', fn)
@@ -59,13 +63,15 @@ export default function Navbar() {
     display: 'block',
   })
 
+  const divider = <div style={{ height: 1, background: c.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)' }} />
+
   return (
       <div>
       <nav
           className="fixed left-0 right-0 z-50 flex items-center justify-between pointer-events-none nav-responsive"
           style={{ top: 14 }}
       >
-        {/* Logo — responsive via CSS */}
+        {/* Logo */}
         <Link
             href="/"
             className="font-buster text-white pointer-events-auto select-none shrink-0 text-[11px] md:text-[14px]"
@@ -77,7 +83,7 @@ export default function Navbar() {
         {/* Right */}
         <div className="flex items-center pointer-events-auto gap-[6px] md:gap-[8px]">
 
-          {/* Nav links — hidden on mobile, visible on md+ */}
+          {/* Nav links — desktop only */}
           <div className="hidden md:flex items-center" style={{ gap: 12, marginRight: 12 }}>
             <a href={isHome ? '#comment-ca-marche' : '/#comment-ca-marche'}
                onClick={handleHiwClick}
@@ -96,7 +102,7 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Login buttons — responsive via CSS classes */}
+          {/* Login buttons */}
           <Link href="/creator/login" className={`${pill} nav-pill-sm md:nav-pill-md`} style={{
             background: '#E8471A', border: '1px solid #E8471A', color: '#fff', textDecoration: 'none',
           }}>
@@ -108,12 +114,15 @@ export default function Navbar() {
             {t('nav_loginResto')}
           </Link>
 
-          {/* Theme + Lang toggles */}
-          <ThemeToggle />
-          <LanguageToggle />
+          {/* Theme + Lang toggles — desktop only in navbar */}
+          <div className="hidden md:flex items-center gap-[8px]">
+            <ThemeToggle />
+            <LanguageToggle />
+          </div>
 
-          {/* Hamburger — visible on mobile, hidden on md+ */}
+          {/* Hamburger — mobile only */}
           <button
+            ref={btnRef}
             onClick={() => setMenuOpen(v => !v)}
             className="md:hidden flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer"
             style={{
@@ -146,7 +155,7 @@ export default function Navbar() {
             backdropFilter: 'blur(16px)',
             border: `1px solid ${c.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'}`,
             borderRadius: 16,
-            padding: '8px 20px',
+            padding: '8px 20px 12px',
             minWidth: 180,
             boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
           }}
@@ -159,14 +168,20 @@ export default function Navbar() {
           >
             {t('nav_howItWorks')}
           </a>
-          <div style={{ height: 1, background: c.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)' }} />
+          {divider}
           <Link href="/tarifs" className="font-dm block" style={mobileNavLinkStyle(pathname === '/tarifs')}>
             {t('nav_pricing')}
           </Link>
-          <div style={{ height: 1, background: c.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)' }} />
+          {divider}
           <Link href="/contact" className="font-dm block" style={mobileNavLinkStyle(pathname === '/contact')}>
             {t('nav_contact')}
           </Link>
+          {divider}
+          {/* Theme + Lang toggles inside mobile menu */}
+          <div className="flex items-center gap-3 pt-2">
+            <ThemeToggle />
+            <LanguageToggle />
+          </div>
         </div>
       )}
       </div>
