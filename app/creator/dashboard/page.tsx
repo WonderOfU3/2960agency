@@ -194,7 +194,7 @@ export default function CreatorDashboardPage() {
 function CreatorDashboard() {
   const { locale, toggleLocale } = useLanguage()
   const { c } = useTheme()
-  const { toast } = useToast()
+  const { toast, confirmModal } = useToast()
   const t = T[locale]
   const router = useRouter()
   const [tab, setTab] = useState<'offers' | 'messages' | 'bookings' | 'profile' | 'referrals' | 'settings'>('offers')
@@ -1000,6 +1000,31 @@ function CreatorDashboard() {
                     <p className="font-dm text-[11px] text-[#4ade80] mt-2">
                       {locale === 'fr' ? 'Présence reconfirmée' : 'Attendance reconfirmed'}
                     </p>
+                  )}
+
+                  {/* Cancel button — creator can cancel pending or confirmed bookings */}
+                  {(b.status === 'pending' || b.status === 'confirmed') && (
+                    <button
+                      onClick={() => {
+                        confirmModal(
+                          locale === 'fr' ? 'Annuler cette réservation ? Cette action est irréversible.' : 'Cancel this booking? This cannot be undone.',
+                          async () => {
+                            const res = await fetch('/api/creator/bookings', {
+                              method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ bookingId: b.id, action: 'cancel' }),
+                            })
+                            if (res.ok) {
+                              setBookings(prev => prev.map(bk => bk.id === b.id ? { ...bk, status: 'cancelled' } : bk))
+                              toast(locale === 'fr' ? 'Réservation annulée' : 'Booking cancelled', 'success')
+                            }
+                          }
+                        )
+                      }}
+                      className="font-dm text-[12px] font-semibold px-4 py-2 rounded-lg cursor-pointer transition-all hover:brightness-110 mt-3"
+                      style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none' }}
+                    >
+                      {locale === 'fr' ? 'Annuler la réservation' : 'Cancel booking'}
+                    </button>
                   )}
 
                   {/* Message button */}

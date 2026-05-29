@@ -42,6 +42,42 @@ export async function GET() {
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  const session = await getCreatorSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
+  try {
+    const { bookingId, action } = await req.json()
+
+    if (action === 'cancel') {
+      // Only the creator who owns the booking can cancel
+      const booking = await sql`
+        SELECT id, status, booking_date FROM bookings
+        WHERE id = ${bookingId} AND creator_id = ${session.id}
+      `
+      if (booking.length === 0) {
+        return NextResponse.json({ error: 'Réservation non trouvée' }, { status: 404 })
+      }
+
+      const b = booking[0]
+      if (b.status === 'cancelled' || b.status === 'refused') {
+        return NextResponse.json({ error: 'Cette réservation est déjà annulée' }, { status: 400 })
+      }
+
+      await sql`UPDATE bookings SET status = 'cancelled' WHERE id = ${bookingId}`
+
+      return NextResponse.json({ success: true })
+    }
+
+    return NextResponse.json({ error: 'Action invalide' }, { status: 400 })
+  } catch (err) {
+    console.error('Creator booking action error:', err)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
+}
+
 export async function POST(req: NextRequest) {
   const session = await getCreatorSession()
   if (!session) {
