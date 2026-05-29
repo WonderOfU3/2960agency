@@ -840,8 +840,8 @@ export default function RestaurantDashboard() {
                           }}>{b.status === 'pending' ? t.pending : b.status === 'confirmed' ? t.confirmed : b.status === 'awaiting_payment' ? t.awaitingPayment : t.refused}</span>
                         </div>
                         <p className="font-dm text-white/40 text-[12px]">
-                          {b.creator_tiktok && <a href={`https://tiktok.com/${b.creator_tiktok.replace('@','')}`} target="_blank" rel="noopener" className="text-[#E8471A] hover:brightness-125" style={{ textDecoration: 'none' }}>{b.creator_tiktok}</a>}
-                          {b.creator_instagram && <a href={`https://instagram.com/${b.creator_instagram.replace('@','')}`} target="_blank" rel="noopener" className="text-white/50 ml-2 hover:text-white/70" style={{ textDecoration: 'none' }}>{b.creator_instagram}</a>}
+                          {b.creator_tiktok && <span className="text-white/40">{b.creator_tiktok}</span>}
+                          {b.creator_instagram && <span className="text-white/30 ml-2">{b.creator_instagram}</span>}
                         </p>
                         <p className="font-dm text-[#E8471A] text-[13px] font-semibold mt-2">
                           {new Date(b.booking_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}

@@ -719,7 +719,7 @@ function CreatorDashboard() {
                             <p className="font-dm text-[10px] uppercase tracking-wider mb-1" style={{ color: c.textMuted }}>{t.prime}</p>
                             {r.virality_tiers.map((tier, i) => (
                               <p key={i} className="font-dm text-[12px]" style={{ color: c.isLight ? '#666' : 'rgba(255,255,255,0.5)' }}>
-                                &gt; {tier.views >= 1000 ? `${tier.views / 1000}k` : tier.views} {locale === 'fr' ? 'vues' : 'views'} → <span style={{ color: '#4ade80' }}>+{tier.bonus}€</span>
+                                &gt; {tier.views >= 1000 ? `${tier.views / 1000}k` : tier.views} {locale === 'fr' ? 'vues' : 'views'} → <span style={{ color: '#4ade80' }}>+{Math.round(tier.bonus * 0.75)}€</span>
                               </p>
                             ))}
                           </div>
@@ -1177,7 +1177,7 @@ function CreatorDashboard() {
                                       }}
                                       className="font-dm text-[12px] w-full text-left px-3 py-2 rounded-lg cursor-pointer transition-all hover:brightness-110"
                                       style={{ background: 'rgba(232,71,26,0.08)', color: '#E8471A', border: '1px solid rgba(232,71,26,0.15)' }}>
-                                      &gt; {(tier.views / 1000).toFixed(0)}k {locale === 'fr' ? 'vues' : 'views'} → +{tier.bonus}€
+                                      &gt; {(tier.views / 1000).toFixed(0)}k {locale === 'fr' ? 'vues' : 'views'} → +{Math.round(tier.bonus * 0.75)}€
                                       <span className="text-[10px] opacity-60 ml-1">({t.contractViralityNote})</span>
                                     </button>
                                   ))}
