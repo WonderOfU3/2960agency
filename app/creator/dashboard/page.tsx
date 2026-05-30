@@ -1674,12 +1674,13 @@ function CreatorDashboard() {
 
       {/* Slot picker modal */}
       {bookingRestaurant && calendarDate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full rounded-2xl animate-step-in" style={{
-            maxWidth: 440, padding: 'clamp(16px, 5vw, 24px)',
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => { setBookingRestaurant(null); setCalendarDate(null); setSelectedSlot(null); setBookingError('') }}>
+          <div className="w-full rounded-2xl animate-step-in overflow-y-auto" style={{
+            maxWidth: 440, maxHeight: 'calc(100vh - 32px)', padding: 'clamp(16px, 5vw, 24px)',
             background: c.cardBg,
             border: `1px solid ${c.divider}`,
-          }}>
+          }} onClick={(e) => e.stopPropagation()}>
             <h3 className="font-dm text-white font-semibold text-[17px] mb-1">{t.bookTitle}</h3>
             <p className="font-dm text-[#E8471A] text-[14px] font-semibold">{bookingRestaurant.name}</p>
             <p className="font-dm text-white/40 text-[12px] mb-4">
@@ -1760,10 +1761,11 @@ function CreatorDashboard() {
       {showBookingTerms && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}
           onClick={() => setShowBookingTerms(false)}>
-          <div className="w-full max-w-md rounded-2xl p-6 animate-fade-in" style={{
+          <div className="w-full max-w-md rounded-2xl p-6 animate-fade-in overflow-y-auto" style={{
             background: c.isLight ? '#fff' : '#1a1815',
             border: `1px solid ${c.divider}`,
             boxShadow: '0 25px 50px rgba(0,0,0,0.4)',
+            maxHeight: 'calc(100vh - 32px)',
           }} onClick={(e) => e.stopPropagation()}>
             <h3 className="font-dm text-[18px] font-bold mb-4" style={{ color: c.text }}>
               {locale === 'fr' ? 'Confirmer ma réservation' : 'Confirm my booking'}

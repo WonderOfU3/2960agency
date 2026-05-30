@@ -223,12 +223,13 @@ CREATE TABLE IF NOT EXISTS bookings (
   report_reason     TEXT,
   reported_at       TIMESTAMPTZ,
 
-  UNIQUE(creator_id, restaurant_id, booking_date)
+  -- No table-level UNIQUE: partial unique index below allows rebooking after cancel/refuse
 );
 
 CREATE INDEX IF NOT EXISTS bookings_creator_idx ON bookings(creator_id);
 CREATE INDEX IF NOT EXISTS bookings_restaurant_idx ON bookings(restaurant_id);
 CREATE INDEX IF NOT EXISTS bookings_date_idx ON bookings(booking_date);
+CREATE UNIQUE INDEX IF NOT EXISTS bookings_unique_active_per_day ON bookings(creator_id, restaurant_id, booking_date) WHERE status NOT IN ('cancelled', 'refused');
 
 -- ════════════════════════════════════════
 --  STEP 7: RECREATE restaurant_users

@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
     // Check duplicate
     const existing = await sql`
       SELECT id FROM bookings
-      WHERE creator_id = ${session.id} AND restaurant_id = ${restaurantId} AND booking_date = ${bookingDate} AND status != 'cancelled'
+      WHERE creator_id = ${session.id} AND restaurant_id = ${restaurantId} AND booking_date = ${bookingDate} AND status NOT IN ('cancelled', 'refused')
     `
     if (existing.length > 0) {
       return NextResponse.json({ error: 'Tu as déjà une réservation pour ce restaurant ce jour-là' }, { status: 400 })
