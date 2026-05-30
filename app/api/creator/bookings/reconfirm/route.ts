@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         WHERE b.id = ${bookingId}
       `
       if (bk.length > 0) {
-        const dateStr = String(bk[0].booking_date).split('T')[0]
+        const dateStr = new Date(bk[0].booking_date).toISOString().split('T')[0]
         await notifyReconfirmed(bk[0].restaurant_id, `${bk[0].first_name} ${bk[0].last_name}`, dateStr)
       }
     } catch (e) { console.error('Reconfirm notification error:', e) }
