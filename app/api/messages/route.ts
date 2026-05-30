@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getCreatorSession } from '@/lib/session'
 import { sendMessageNotification } from '@/lib/email'
+import { notifyNewMessage } from '@/lib/notifications'
 
 // GET messages for a booking (creator auth)
 export async function GET(req: NextRequest) {
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
 
   // Verify booking belongs to creator
   const booking = await sql`
-    SELECT b.id, r.name as restaurant_name, r.business_application_id
+    SELECT b.id, b.restaurant_id, r.name as restaurant_name, r.business_application_id
     FROM bookings b
     JOIN restaurants r ON b.restaurant_id = r.id
     WHERE b.id = ${bookingId} AND b.creator_id = ${session.id}
@@ -65,6 +66,9 @@ export async function POST(req: NextRequest) {
     INSERT INTO messages (booking_id, sender_type, sender_name, content)
     VALUES (${bookingId}, 'creator', ${senderName}, ${content.trim()})
   `
+
+  // In-app notification for restaurant
+  try { await notifyNewMessage('restaurant', booking[0].restaurant_id, senderName) } catch (e) { console.error('Message notification error:', e) }
 
   // Notify restaurant by email
   if (booking[0].business_application_id) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getCreatorSession } from '@/lib/session'
+import { notifyReconfirmed } from '@/lib/notifications'
 
 // POST: creator reconfirms a booking (between 5 days and 24h before)
 export async function POST(req: NextRequest) {
@@ -50,7 +51,8 @@ export async function POST(req: NextRequest) {
 
     // Check timing: must be between 5 days and 24h before booking
     const now = new Date()
-    const [y, m, d] = b.booking_date.split('-').map(Number)
+    const dateStr = String(b.booking_date).split('T')[0]
+    const [y, m, d] = dateStr.split('-').map(Number)
     const bookingDate = new Date(y, m - 1, d)
     const msUntil = bookingDate.getTime() - now.getTime()
     const daysUntil = msUntil / (1000 * 60 * 60 * 24)
@@ -65,6 +67,19 @@ export async function POST(req: NextRequest) {
     await sql`
       UPDATE bookings SET reconfirmed_at = NOW() WHERE id = ${bookingId}
     `
+
+    // Notify restaurant
+    try {
+      const bk = await sql`
+        SELECT b.restaurant_id, c.first_name, c.last_name, b.booking_date
+        FROM bookings b JOIN creators c ON b.creator_id = c.id
+        WHERE b.id = ${bookingId}
+      `
+      if (bk.length > 0) {
+        const dateStr = String(bk[0].booking_date).split('T')[0]
+        await notifyReconfirmed(bk[0].restaurant_id, `${bk[0].first_name} ${bk[0].last_name}`, dateStr)
+      }
+    } catch (e) { console.error('Reconfirm notification error:', e) }
 
     return NextResponse.json({ success: true })
   } catch (err) {

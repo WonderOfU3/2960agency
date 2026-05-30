@@ -149,6 +149,7 @@ interface Booking {
   end_time: string
   reconfirmed_at: string | null
   reminder_sent_at: string | null
+  created_at: string | null
   post_link: string | null
   post_submitted_at: string | null
   claimed_tier: ViralityTier | null
@@ -219,6 +220,7 @@ function CreatorDashboard() {
   const [numPeople, setNumPeople] = useState(1)
   const [bookingError, setBookingError] = useState('')
   const [bookingLoading, setBookingLoading] = useState(false)
+  const [showBookingTerms, setShowBookingTerms] = useState(false)
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
   const [conversations, setConversations] = useState<{ booking_id: number; booking_date: string; restaurant_name: string; restaurant_address: string; restaurant_city: string; unread_count: number; total_messages: number; last_message: string; last_sender: string; last_message_at: string }[]>([])
@@ -443,6 +445,21 @@ function CreatorDashboard() {
     } catch { /* error */ }
     setChatSending(false)
   }
+
+  // Poll messages every 5 seconds when chat is open
+  useEffect(() => {
+    if (!chatBookingId) return
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/messages?bookingId=${chatBookingId}`)
+        if (res.ok) {
+          const data = await res.json()
+          setChatMessages(data.messages || [])
+        }
+      } catch { /* */ }
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [chatBookingId])
 
   const handleLogout = () => {
     document.cookie = 'creator_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
@@ -959,11 +976,17 @@ function CreatorDashboard() {
                     </span>
                   </div>
 
-                  {/* Reconfirm button — shows for confirmed bookings within 5 days that aren't reconfirmed */}
+                  {/* Reconfirm button — shows for confirmed bookings within 5 days, not reconfirmed, and only if booked more than 5 days before */}
                   {b.status === 'confirmed' && !b.reconfirmed_at && (() => {
                     const [by, bm, bd] = (b.booking_date?.slice(0, 10) || '').split('-').map(Number)
                     const bDate = new Date(by, bm - 1, bd)
                     const daysUntil = (bDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+                    // Don't show if booking was made less than 5 days before the booking date
+                    if (b.created_at) {
+                      const createdAt = new Date(b.created_at)
+                      const daysBetweenBookAndDate = (bDate.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+                      if (daysBetweenBookAndDate < 5) return false
+                    }
                     return daysUntil <= 5 && daysUntil > 0
                   })() && (
                     <div className="mt-3 rounded-xl p-3 animate-fade-in" style={{ background: 'rgba(217,79,42,0.08)', border: '1px solid rgba(217,79,42,0.15)' }}>
@@ -1723,10 +1746,72 @@ function CreatorDashboard() {
                 style={{ background: c.inputBg, color: c.isLight ? '#777' : '#8a8580', border: 'none' }}>
                 {t.cancel}
               </button>
-              <button onClick={handleBook} disabled={!selectedSlot || bookingLoading}
+              <button onClick={() => setShowBookingTerms(true)} disabled={!selectedSlot || bookingLoading}
                 className="font-dm flex-1 text-[13px] font-semibold py-3 rounded-lg cursor-pointer transition-all disabled:opacity-40"
                 style={{ background: '#E8471A', color: '#fff', border: 'none' }}>
                 {bookingLoading ? t.booking : t.confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking terms confirmation modal */}
+      {showBookingTerms && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setShowBookingTerms(false)}>
+          <div className="w-full max-w-md rounded-2xl p-6 animate-fade-in" style={{
+            background: c.isLight ? '#fff' : '#1a1815',
+            border: `1px solid ${c.divider}`,
+            boxShadow: '0 25px 50px rgba(0,0,0,0.4)',
+          }} onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-dm text-[18px] font-bold mb-4" style={{ color: c.text }}>
+              {locale === 'fr' ? 'Confirmer ma réservation' : 'Confirm my booking'}
+            </h3>
+            <p className="font-dm text-[13px] mb-4" style={{ color: c.textMuted }}>
+              {locale === 'fr' ? 'En confirmant ta réservation, tu t\'engages à :' : 'By confirming your booking, you agree to:'}
+            </p>
+            <div className="space-y-3 mb-5">
+              {[
+                locale === 'fr'
+                  ? 'Confirmer ta réservation depuis ton profil entre 5 jours et 24h avant la collab (sinon annulation auto)'
+                  : 'Confirm your booking from your profile between 5 days and 24h before the collab (otherwise auto-cancellation)',
+                locale === 'fr'
+                  ? 'Être à l\'heure sur ton créneau, rester discret et ne pas filmer les autres clients'
+                  : 'Be on time for your slot, stay discreet and do not film other customers',
+                locale === 'fr'
+                  ? 'Publier 1 post (carousel ou vidéo) — liberté créative, mais si des directives sont indiquées sur l\'offre, tu dois les suivre'
+                  : 'Publish 1 post (carousel or video) — creative freedom, but if directives are indicated on the offer, you must follow them',
+                locale === 'fr'
+                  ? 'Garder une image positive du resto — il peut demander la suppression du contenu s\'il ne respecte pas ses règles'
+                  : 'Keep a positive image of the restaurant — they can request content removal if it doesn\'t respect their rules',
+                locale === 'fr'
+                  ? 'Déposer ton lien dans les 7 jours après la collab'
+                  : 'Submit your link within 7 days after the collab',
+              ].map((text, i) => (
+                <div key={i} className="flex items-start gap-2.5">
+                  <span className="text-[14px] flex-shrink-0 mt-0.5">{['📅','⏰','🎥','😊','🔗'][i]}</span>
+                  <p className="font-dm text-[12px] leading-relaxed" style={{ color: c.isLight ? '#555' : 'rgba(255,255,255,0.6)' }}>{text}</p>
+                </div>
+              ))}
+            </div>
+            <p className="font-dm text-[11px] mb-5" style={{ color: c.isLight ? '#999' : 'rgba(255,255,255,0.3)' }}>
+              {locale === 'fr'
+                ? 'Annulations répétées ou no-show = compte bloqué. Un souci ? contact@2960agency.com'
+                : 'Repeated cancellations or no-show = account blocked. Any issues? contact@2960agency.com'}
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowBookingTerms(false)}
+                className="font-dm flex-1 text-[13px] font-semibold py-3 rounded-lg cursor-pointer transition-all"
+                style={{ background: c.inputBg, color: c.isLight ? '#777' : '#8a8580', border: 'none' }}>
+                {locale === 'fr' ? 'Annuler' : 'Cancel'}
+              </button>
+              <button onClick={() => { setShowBookingTerms(false); handleBook() }} disabled={bookingLoading}
+                className="font-dm flex-1 text-[13px] font-semibold py-3 rounded-lg cursor-pointer transition-all disabled:opacity-40"
+                style={{ background: '#E8471A', color: '#fff', border: 'none' }}>
+                {bookingLoading
+                  ? (locale === 'fr' ? 'Réservation...' : 'Booking...')
+                  : (locale === 'fr' ? 'Confirmer ma réservation' : 'Confirm my booking')}
               </button>
             </div>
           </div>

@@ -256,7 +256,15 @@ export default function BusinessForm() {
     return Object.keys(e).length === 0
   }
 
-  const next = () => { if (validate(step)) { setStep(s => s + 1); window.scrollTo({ top: 0, behavior: 'smooth' }) } }
+  const next = () => {
+    if (validate(step)) {
+      if (step === 0 && typeof window !== 'undefined') {
+        if ((window as any).ttq) { (window as any).ttq.track('Lead') }
+        if ((window as any).fbq) { (window as any).fbq('track', 'Lead') }
+      }
+      setStep(s => s + 1); window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
   const prev = () => { setStep(s => s - 1); setErrors({}); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
   const handleSubmit = async () => {
@@ -295,6 +303,10 @@ export default function BusinessForm() {
         body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error('failed')
+      if (typeof window !== 'undefined') {
+        if ((window as any).ttq) { (window as any).ttq.track('CompleteRegistration') }
+        if ((window as any).fbq) { (window as any).fbq('track', 'CompleteRegistration') }
+      }
       router.push('/business/success')
     } catch {
       setErrors({ submit: t.submitErr })

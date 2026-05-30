@@ -640,3 +640,49 @@ export async function sendBookingReminder(data: {
     console.error('Reminder email failed:', e)
   }
 }
+
+export async function sendPasswordResetEmail(data: {
+  email: string
+  firstName: string
+  resetUrl: string
+}) {
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:660px;margin:40px auto;padding:0 20px;">
+  <div style="margin-bottom:28px;">
+    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
+  </div>
+  <h1 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 12px;">Réinitialisation de mot de passe</h1>
+  <p style="color:#c8c3b8;font-size:15px;margin:0 0 24px;line-height:1.6;">
+    Salut ${data.firstName},<br><br>
+    Tu as demandé à réinitialiser ton mot de passe. Clique sur le bouton ci-dessous pour en choisir un nouveau.
+  </p>
+  <div style="text-align:center;margin:32px 0;">
+    <a href="${data.resetUrl}"
+       style="display:inline-block;background:#E8471A;color:#fff;padding:16px 40px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">
+      Réinitialiser mon mot de passe
+    </a>
+  </div>
+  <p style="color:#8a8580;font-size:12px;margin:0 0 8px;">Ce lien expire dans 1 heure.</p>
+  <p style="color:#8a8580;font-size:12px;margin:0;">Si tu n'as pas fait cette demande, ignore cet email.</p>
+  <p style="color:#2a2825;font-size:11px;margin-top:32px;">2960 Agency — notification automatique</p>
+</div></body></html>`
+
+  try {
+    await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': BREVO_API_KEY,
+      },
+      body: JSON.stringify({
+        sender: { name: FROM_NAME, email: FROM_EMAIL },
+        to: [{ email: data.email }],
+        subject: 'Réinitialisation de mot de passe — 2960 Agency',
+        htmlContent: html,
+      }),
+    })
+  } catch (e) {
+    console.error('Password reset email failed:', e)
+  }
+}

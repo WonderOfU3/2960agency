@@ -17,7 +17,7 @@ export async function GET() {
     `
 
     const restaurant = await sql`
-      SELECT offer_description, max_bookings_per_day, max_bookings_per_week, max_people, virality_tiers, photos, is_published, directives
+      SELECT offer_description, max_bookings_per_day, max_bookings_per_week, max_people, virality_tiers, photos, is_published, directives, auto_accept
       FROM restaurants WHERE id = ${session.restaurantId}
     `
 
@@ -31,6 +31,7 @@ export async function GET() {
       photos: restaurant[0]?.photos || [],
       directives: restaurant[0]?.directives || '',
       maxPerWeek: restaurant[0]?.max_bookings_per_week ?? null,
+      autoAccept: restaurant[0]?.auto_accept !== false,
     })
   } catch (err) {
     console.error('Fetch collabs error:', err)

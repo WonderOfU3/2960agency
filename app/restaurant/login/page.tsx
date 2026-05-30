@@ -99,6 +99,12 @@ export default function RestaurantLoginPage() {
               style={{ height: 48, padding: '0 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }} />
           </div>
 
+          <div className="flex justify-end mb-4">
+            <Link href="/forgot-password?type=restaurant" className="font-dm text-[12px] hover:brightness-125 transition-all" style={{ color: '#E8471A', textDecoration: 'none' }}>
+              {locale === 'fr' ? 'Mot de passe oublié ?' : 'Forgot password?'}
+            </Link>
+          </div>
+
           {pendingMessage && (
             <div className="font-dm text-[13px] mb-4 p-4 rounded-lg" style={{ background: 'rgba(217,79,42,0.08)', border: '1px solid rgba(217,79,42,0.2)', color: '#D94F2A' }}>
               <p className="font-semibold mb-1">&#9203; {t.pending}</p>

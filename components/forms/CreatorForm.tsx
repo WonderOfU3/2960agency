@@ -271,12 +271,26 @@ export default function CreatorForm() {
       if (!form.postedContent) e.postedContent = t.req
       if (form.postedContent === 'yes') {
         if (!form.contentLinks.some(l => l.trim())) e.contentLinks = t.req
+        else {
+          const hasInvalid = form.contentLinks.some(l => {
+            if (!l.trim()) return false
+            try { const u = new URL(l.trim()); return !['http:', 'https:'].includes(u.protocol) || !u.hostname.includes('.') } catch { return true }
+          })
+          if (hasInvalid) e.contentLinks = locale === 'fr' ? 'Entre un vrai lien (ex: https://tiktok.com/...)' : 'Enter a valid link (e.g. https://tiktok.com/...)'
+        }
       }
       if (form.postedContent === 'no') {
         if (files.length === 0) e.files = t.req
       }
       if (form.postedContent === 'a_little') {
         if (!form.contentLinks.some(l => l.trim()) && files.length === 0) e.contentLinks = t.needProof
+        else if (form.contentLinks.some(l => l.trim())) {
+          const hasInvalid = form.contentLinks.some(l => {
+            if (!l.trim()) return false
+            try { const u = new URL(l.trim()); return !['http:', 'https:'].includes(u.protocol) || !u.hostname.includes('.') } catch { return true }
+          })
+          if (hasInvalid) e.contentLinks = locale === 'fr' ? 'Entre un vrai lien (ex: https://tiktok.com/...)' : 'Enter a valid link (e.g. https://tiktok.com/...)'
+        }
       }
       if (!form.acceptCGU) e.acceptCGU = t.req
     }
@@ -287,7 +301,15 @@ export default function CreatorForm() {
     return Object.keys(e).length === 0
   }
 
-  const next = () => { if (validate(step)) { setStep(s => s + 1); window.scrollTo({ top: 0, behavior: 'smooth' }) } }
+  const next = () => {
+    if (validate(step)) {
+      if (step === 0 && typeof window !== 'undefined') {
+        if ((window as any).ttq) { (window as any).ttq.track('Lead') }
+        if ((window as any).fbq) { (window as any).fbq('track', 'Lead') }
+      }
+      setStep(s => s + 1); window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
   const prev = () => { setStep(s => s - 1); setErrors({}); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
   const handleSubmit = async () => {
@@ -340,6 +362,11 @@ export default function CreatorForm() {
       const data = await res.json()
       if (data.ambassadorCode) {
         localStorage.setItem('creatorAmbassadorCode', data.ambassadorCode)
+      }
+      // Fire TikTok & Meta pixel events
+      if (typeof window !== 'undefined') {
+        if ((window as any).ttq) { (window as any).ttq.track('CompleteRegistration') }
+        if ((window as any).fbq) { (window as any).fbq('track', 'CompleteRegistration') }
       }
       router.push('/creator/success')
     } catch {

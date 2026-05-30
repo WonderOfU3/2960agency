@@ -266,6 +266,7 @@ export default function RestaurantDashboard() {
       setIsPublished(colData.isPublished || false)
       setDirectives(colData.directives || '')
       setMaxPerWeek(colData.maxPerWeek ?? null)
+      setAutoAccept(colData.autoAccept !== false)
 
       // Get auto_accept from cookie session
       try {
@@ -332,6 +333,21 @@ export default function RestaurantDashboard() {
     const mRes = await fetch('/api/restaurant/messages')
     if (mRes.ok) { const d = await mRes.json(); setConversations(d.conversations || []); setTotalUnread(d.totalUnread || 0) }
   }
+
+  // Poll messages every 5 seconds when chat is open
+  useEffect(() => {
+    if (!chatBookingId) return
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/restaurant/messages', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_messages', bookingId: chatBookingId }),
+        })
+        if (res.ok) { const d = await res.json(); setChatMessages(d.messages || []) }
+      } catch { /* */ }
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [chatBookingId])
 
   const sendChat = async () => {
     if (!chatInput.trim() || !chatBookingId || chatSending) return

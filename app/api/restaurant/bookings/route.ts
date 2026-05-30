@@ -155,27 +155,31 @@ export async function PATCH(req: NextRequest) {
         await syncCollabUsage(session.restaurantId, b.booking_date)
       }
 
-      // Send confirmation emails
-      const bookingDate = new Date(b.booking_date)
-      const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-      await sendBookingConfirmation({
-        creatorName: `${b.first_name} ${b.last_name}`,
-        creatorEmail: b.creator_email,
-        creatorPhone: b.creator_phone,
-        creatorTiktok: b.tiktok_username || '',
-        restaurantName: b.restaurant_name,
-        restaurantAddress: b.restaurant_address,
-        restaurantCity: b.restaurant_city,
-        restaurantEmail: session.email,
-        restaurantOwner: session.ownerName,
-        conversationUrl: `${appUrl}/conversation/${convToken}`,
-        bookingDate: `${DAYS[bookingDate.getDay()]} ${bookingDate.toLocaleDateString('fr-FR')}`,
-        timeSlot: `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}`,
-        offerDescription: b.offer_description,
-      })
+      // Send confirmation emails (non-blocking — booking is already confirmed)
+      try {
+        const bookingDate = new Date(b.booking_date)
+        const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+        await sendBookingConfirmation({
+          creatorName: `${b.first_name} ${b.last_name}`,
+          creatorEmail: b.creator_email,
+          creatorPhone: b.creator_phone,
+          creatorTiktok: b.tiktok_username || '',
+          restaurantName: b.restaurant_name,
+          restaurantAddress: b.restaurant_address,
+          restaurantCity: b.restaurant_city,
+          restaurantEmail: session.email,
+          restaurantOwner: session.ownerName,
+          conversationUrl: `${appUrl}/conversation/${convToken}`,
+          bookingDate: `${DAYS[bookingDate.getDay()]} ${bookingDate.toLocaleDateString('fr-FR')}`,
+          timeSlot: `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}`,
+          offerDescription: b.offer_description,
+        })
+      } catch (emailErr) {
+        console.error('Email send error (booking already confirmed):', emailErr)
+      }
 
-      await notifyBookingAccepted(b.creator_id, b.restaurant_name)
+      try { await notifyBookingAccepted(b.creator_id, b.restaurant_name) } catch (e) { console.error('Notification error:', e) }
       return NextResponse.json({ success: true })
     }
 
@@ -197,7 +201,7 @@ export async function PATCH(req: NextRequest) {
         await syncCollabUsage(session.restaurantId, b.booking_date)
       }
 
-      await notifyBookingRefused(b.creator_id, b.restaurant_name)
+      try { await notifyBookingRefused(b.creator_id, b.restaurant_name) } catch (e) { console.error('Notification error:', e) }
       return NextResponse.json({ success: true })
     }
 

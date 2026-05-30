@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { sendMessageNotification } from '@/lib/email'
+import { notifyNewMessage } from '@/lib/notifications'
 
 // GET messages using conversation token (restaurant, no login)
 export async function GET(req: NextRequest) {
@@ -76,6 +77,9 @@ export async function POST(req: NextRequest) {
       INSERT INTO messages (booking_id, sender_type, sender_name, content)
       VALUES (${conv[0].booking_id}, 'restaurant', ${senderName}, ${content.trim()})
     `
+
+    // In-app notification for creator
+    try { await notifyNewMessage('creator', conv[0].creator_id, senderName) } catch (e) { console.error('Message notification error:', e) }
 
     // Notify creator by email (don't let email failure crash the request)
     try {

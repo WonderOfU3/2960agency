@@ -117,7 +117,7 @@ const REWARD_COLORS: Record<string, { bg: string; text: string; label: string }>
 export default function AdminDashboard() {
   const router = useRouter()
   const { c } = useTheme()
-  const [tab, setTab] = useState<'creator_apps' | 'creators' | 'applications' | 'restaurants' | 'claims' | 'analytics'>('creator_apps')
+  const [tab, setTab] = useState<'creator_apps' | 'creators' | 'applications' | 'restaurants' | 'collabs' | 'claims' | 'analytics'>('creator_apps')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [analytics, setAnalytics] = useState<any>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
@@ -132,6 +132,15 @@ export default function AdminDashboard() {
   const [editingSlotsFor, setEditingSlotsFor] = useState<number | null>(null)
   const [slotMode, setSlotMode] = useState<'recurring' | 'date'>('recurring')
   const [newSlot, setNewSlot] = useState({ dayOfWeek: '1', startTime: '12:00', endTime: '14:00', maxBookings: '1', date: '' })
+  const [searchQuery, setSearchQuery] = useState('')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [collabs, setCollabs] = useState<any[]>([])
+  const [collabsLoaded, setCollabsLoaded] = useState(false)
+
+  const sq = searchQuery.toLowerCase().trim()
+  const filteredCreators = creators.filter(cr => !sq || [cr.first_name, cr.last_name, cr.email, cr.tiktok_username, cr.instagram_username, cr.city, cr.ambassador_code].some(f => f?.toLowerCase().includes(sq)))
+  const filteredApps = applications.filter(a => !sq || [a.business_name, a.owner_name, a.email, a.city, a.address, a.cuisine_type].some(f => f?.toLowerCase().includes(sq)))
+  const filteredRestos = restaurants.filter(r => !sq || [r.name, r.cuisine_type, r.address, r.city].some(f => f?.toLowerCase().includes(sq)))
 
   const handleAddSlot = async (restaurantId: number) => {
     try {
@@ -293,6 +302,24 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Search bar */}
+      <div className="px-4 sm:px-8 mb-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Rechercher un créateur ou restaurant..."
+          className="font-dm w-full max-w-md rounded-xl text-[14px] outline-none transition-all"
+          style={{
+            height: 44, padding: '0 16px',
+            background: c.inputBg, border: `1px solid ${c.inputBorder}`,
+            color: c.text,
+          }}
+          onFocus={e => e.target.style.borderColor = 'rgba(232,71,26,0.4)'}
+          onBlur={e => e.target.style.borderColor = c.inputBorder || 'rgba(255,255,255,0.08)'}
+        />
+      </div>
+
       {/* Tabs */}
       <div className="px-4 sm:px-8 mb-4">
         <div className="flex gap-1 rounded-xl p-1 flex-wrap" style={{ background: c.cardBg, display: 'inline-flex' }}>
@@ -301,6 +328,7 @@ export default function AdminDashboard() {
             { key: 'creators' as const, label: 'Créateurs' },
             { key: 'applications' as const, label: 'Candidatures restos' },
             { key: 'restaurants' as const, label: 'Restaurants' },
+            { key: 'collabs' as const, label: 'Collabs' },
             { key: 'claims' as const, label: 'Claims' },
             { key: 'analytics' as const, label: 'Analytics' },
           ]).map(t => (
@@ -323,10 +351,10 @@ export default function AdminDashboard() {
         {/* === CREATOR APPLICATIONS TAB (pending/rejected) === */}
         {tab === 'creator_apps' && (
           <div className="space-y-3">
-            {creators.filter(cr => cr.status === 'pending_validation' || cr.status === 'rejected').length === 0 ? (
+            {filteredCreators.filter(cr => cr.status === 'pending_validation' || cr.status === 'rejected').length === 0 ? (
               <p className="font-dm text-white/30 text-center py-12">Aucune candidature créateur en attente</p>
             ) : (
-              creators.filter(cr => cr.status === 'pending_validation' || cr.status === 'rejected').map(cr => {
+              filteredCreators.filter(cr => cr.status === 'pending_validation' || cr.status === 'rejected').map(cr => {
                 const s = STATUS_COLORS[cr.status] || STATUS_COLORS.pending_validation
                 const r = REWARD_COLORS[cr.reward_status] || REWARD_COLORS.pending
                 return (
@@ -387,10 +415,10 @@ export default function AdminDashboard() {
         {/* === VALIDATED CREATORS TAB === */}
         {tab === 'creators' && (
           <div className="space-y-3">
-            {creators.filter(cr => cr.status === 'active' || cr.status === 'blocked').length === 0 ? (
+            {filteredCreators.filter(cr => cr.status === 'active' || cr.status === 'blocked').length === 0 ? (
               <p className="font-dm text-white/30 text-center py-12">Aucun créateur validé pour le moment</p>
             ) : (
-              creators.filter(cr => cr.status === 'active' || cr.status === 'blocked').map(cr => {
+              filteredCreators.filter(cr => cr.status === 'active' || cr.status === 'blocked').map(cr => {
                 const s = STATUS_COLORS[cr.status] || STATUS_COLORS.pending_validation
                 const r = REWARD_COLORS[cr.reward_status] || REWARD_COLORS.pending
                 return (
@@ -483,10 +511,10 @@ export default function AdminDashboard() {
 
         {tab === 'applications' && (
           <div className="space-y-3">
-            {applications.length === 0 ? (
+            {filteredApps.length === 0 ? (
               <p className="font-dm text-white/30 text-center py-12">Aucune candidature restaurant</p>
             ) : (
-              applications.map(a => {
+              filteredApps.map(a => {
                 const isPending = !a.status || a.status === 'pending'
                 const isAccepted = a.status === 'accepted'
                 const isRejected = a.status === 'rejected'
@@ -597,10 +625,10 @@ export default function AdminDashboard() {
             {showRestoForm && <RestaurantForm onSuccess={() => { setShowRestoForm(false); fetchData() }} />}
 
             <div className="space-y-3 mt-4">
-              {restaurants.length === 0 ? (
+              {filteredRestos.length === 0 ? (
                 <p className="font-dm text-white/30 text-center py-12">Aucun restaurant ajouté</p>
               ) : (
-                restaurants.map(r => (
+                filteredRestos.map(r => (
                   <div key={r.id} className="rounded-2xl p-5 animate-fade-in" style={{
                     background: c.cardBg,
                     border: `1px solid ${c.divider}`,
@@ -862,7 +890,69 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* === ANALYTICS TAB === */}
+        {/* === COLLABS TAB === */}
+        {tab === 'collabs' && (
+          <div>
+            {!collabsLoaded && (
+              <button onClick={async () => {
+                const res = await fetch('/api/admin/collabs')
+                if (res.ok) { const data = await res.json(); setCollabs(data.bookings || []) }
+                setCollabsLoaded(true)
+              }} className="font-dm text-[13px] font-semibold px-5 py-2.5 rounded-lg cursor-pointer mb-4"
+                style={{ background: '#E8471A', color: '#fff', border: 'none' }}>
+                Charger les collabs
+              </button>
+            )}
+            {collabsLoaded && collabs.length === 0 && (
+              <p className="font-dm text-white/30 text-center py-12">Aucune collab</p>
+            )}
+            {collabs.length > 0 && (
+              <div className="space-y-2">
+                {collabs
+                  .filter(cb => !sq || [cb.creator_first_name, cb.creator_last_name, cb.creator_email, cb.creator_tiktok, cb.restaurant_name, cb.restaurant_city].some((f: string) => f?.toLowerCase().includes(sq)))
+                  .map((cb: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+                  const statusColors: Record<string, { bg: string; text: string }> = {
+                    pending: { bg: 'rgba(217,79,42,0.1)', text: '#D94F2A' },
+                    confirmed: { bg: 'rgba(74,222,128,0.1)', text: '#4ade80' },
+                    refused: { bg: 'rgba(239,68,68,0.1)', text: '#ef4444' },
+                    cancelled: { bg: 'rgba(255,255,255,0.05)', text: '#8a8580' },
+                    completed: { bg: 'rgba(74,222,128,0.15)', text: '#22c55e' },
+                    awaiting_payment: { bg: 'rgba(252,250,166,0.1)', text: '#fcfaa6' },
+                  }
+                  const sc = statusColors[cb.status] || statusColors.pending
+                  const dateStr = cb.booking_date ? String(cb.booking_date).split('T')[0] : ''
+                  return (
+                    <div key={cb.id} className="rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap" style={{
+                      background: c.cardBg, border: `1px solid ${c.divider}`,
+                    }}>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-dm text-[14px] font-semibold" style={{ color: c.text }}>
+                          {cb.creator_first_name} {cb.creator_last_name}
+                          <span className="text-white/30 mx-2">&rarr;</span>
+                          {cb.restaurant_name}
+                        </p>
+                        <p className="font-dm text-[12px]" style={{ color: c.textMuted }}>
+                          {dateStr} &middot; {cb.slot_start_time?.slice(0, 5) || ''} - {cb.slot_end_time?.slice(0, 5) || ''} &middot; {cb.restaurant_city}
+                        </p>
+                        {cb.post_link && (
+                          <a href={cb.post_link} target="_blank" rel="noopener" className="font-dm text-[11px] text-[#E8471A] hover:brightness-125" style={{ textDecoration: 'none' }}>
+                            Voir le post
+                          </a>
+                        )}
+                      </div>
+                      <span className="font-dm text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0" style={{
+                        background: sc.bg, color: sc.text,
+                      }}>
+                        {cb.status}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Claims tab */}
         {tab === 'claims' && (
           <div>

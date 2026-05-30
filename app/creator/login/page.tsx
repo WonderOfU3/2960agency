@@ -146,6 +146,12 @@ export default function CreatorLoginPage() {
             />
           </div>
 
+          <div className="flex justify-end mb-4">
+            <Link href="/forgot-password?type=creator" className="font-dm text-[12px] hover:brightness-125 transition-all" style={{ color: '#E8471A', textDecoration: 'none' }}>
+              {locale === 'fr' ? 'Mot de passe oublié ?' : 'Forgot password?'}
+            </Link>
+          </div>
+
           {pendingMessage && (
             <div className="font-dm text-[13px] mb-4 p-4 rounded-lg" style={{
               background: 'rgba(217,79,42,0.08)',

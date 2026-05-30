@@ -36,7 +36,10 @@ const schema = z.object({
   niche:               z.array(z.string()).min(1),
   audienceSize:        z.string().min(1),
   postedContent:       z.string().min(1),
-  contentLinks:        z.array(z.string()).default([]),
+  contentLinks:        z.array(z.string().refine(s => {
+    if (!s.trim()) return true // allow empty strings (filtered later)
+    try { const u = new URL(s.trim()); return ['http:', 'https:'].includes(u.protocol) && u.hostname.includes('.') } catch { return false }
+  }, { message: 'Lien invalide' })).default([]),
   contentNote:         z.string().nullable().optional(),
   fileNames:           z.array(z.string()).default([]),
   cloudinaryUrls:      z.array(z.string()).default([]),

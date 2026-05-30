@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getRestaurantSession } from '@/lib/session'
 import { sendMessageNotification } from '@/lib/email'
+import { notifyNewMessage } from '@/lib/notifications'
 
 export async function GET() {
   const session = await getRestaurantSession()
@@ -77,7 +78,10 @@ export async function POST(req: NextRequest) {
         VALUES (${bookingId}, 'restaurant', ${session.ownerName || session.businessName}, ${content.trim()})
       `
 
-      // Notify creator
+      // In-app notification for creator
+      try { await notifyNewMessage('creator', booking[0].creator_id, session.ownerName || session.businessName || 'Restaurant') } catch (e) { console.error('Message notification error:', e) }
+
+      // Notify creator by email
       try {
         const creator = await sql`SELECT email, first_name FROM creators WHERE id = ${booking[0].creator_id}`
         if (creator.length > 0) {

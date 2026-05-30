@@ -107,6 +107,39 @@ export async function notifyCreatorInvited(creatorId: number, restaurantName: st
   })
 }
 
+export async function notifyBookingCancelled(restaurantId: number, creatorName: string) {
+  await createNotification({
+    recipientType: 'restaurant',
+    recipientId: restaurantId,
+    type: 'booking_cancelled',
+    title: 'Réservation annulée',
+    body: `${creatorName} a annulé sa réservation`,
+    link: '/restaurant/dashboard?tab=collabs',
+  })
+}
+
+export async function notifyReconfirmed(restaurantId: number, creatorName: string, bookingDate: string) {
+  await createNotification({
+    recipientType: 'restaurant',
+    recipientId: restaurantId,
+    type: 'reconfirmed',
+    title: 'Présence reconfirmée',
+    body: `${creatorName} a reconfirmé sa présence pour le ${bookingDate}`,
+    link: '/restaurant/dashboard?tab=collabs',
+  })
+}
+
+export async function notifyPostSubmitted(restaurantId: number, creatorName: string) {
+  await createNotification({
+    recipientType: 'restaurant',
+    recipientId: restaurantId,
+    type: 'post_submitted',
+    title: 'Post soumis',
+    body: `${creatorName} a soumis son lien de publication`,
+    link: '/restaurant/dashboard?tab=collabs',
+  })
+}
+
 export async function notifyPostDeadlineWarning(creatorId: number, restaurantName: string) {
   await createNotification({
     recipientType: 'creator',

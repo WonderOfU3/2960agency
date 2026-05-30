@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getCreatorSession } from '@/lib/session'
+import { notifyPostSubmitted } from '@/lib/notifications'
 
 export async function POST(req: NextRequest) {
   const session = await getCreatorSession()
@@ -13,9 +14,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Données manquantes' }, { status: 400 })
     }
 
-    // Validate URL
-    if (!postLink.startsWith('http://') && !postLink.startsWith('https://')) {
-      return NextResponse.json({ error: 'Lien invalide' }, { status: 400 })
+    // Validate URL — must be a real URL with a valid domain
+    try {
+      const url = new URL(postLink)
+      if (!['http:', 'https:'].includes(url.protocol)) throw new Error('bad protocol')
+      if (!url.hostname.includes('.')) throw new Error('invalid domain')
+    } catch {
+      return NextResponse.json({ error: 'Lien invalide — entre un vrai lien (ex: https://tiktok.com/...)' }, { status: 400 })
     }
 
     // Verify booking belongs to creator and is confirmed
@@ -35,6 +40,18 @@ export async function POST(req: NextRequest) {
       SET post_link = ${postLink}, post_submitted_at = NOW()
       WHERE id = ${bookingId}
     `
+
+    // Notify restaurant
+    try {
+      const bk = await sql`
+        SELECT b.restaurant_id, c.first_name, c.last_name
+        FROM bookings b JOIN creators c ON b.creator_id = c.id
+        WHERE b.id = ${bookingId}
+      `
+      if (bk.length > 0) {
+        await notifyPostSubmitted(bk[0].restaurant_id, `${bk[0].first_name} ${bk[0].last_name}`)
+      }
+    } catch (e) { console.error('Post submit notification error:', e) }
 
     return NextResponse.json({ success: true })
   } catch (err) {

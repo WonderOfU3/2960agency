@@ -61,7 +61,7 @@ export default function ConversationPage() {
   // Poll for new messages every 15s
   useEffect(() => {
     if (error) return
-    const interval = setInterval(fetchMessages, 15000)
+    const interval = setInterval(fetchMessages, 5000)
     return () => clearInterval(interval)
   }, [fetchMessages, error])
 

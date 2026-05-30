@@ -156,9 +156,10 @@ export default function Hero() {
   const globeAlpha = useRef({ v: 1 })
   const pinPow     = useRef({ v: 1 })
   const gScale     = useRef({ v: 1 })
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const { c } = useTheme()
   const [bp, setBp] = useState<BP>(getBP)
+  const [choiceType, setChoiceType] = useState<'creator' | 'business' | null>(null)
   const safari = useRef(isSafari())
   const cfg  = CFGS[bp]
   const cards = useMemo(() => ALL_CARDS.slice(0, cfg.cardN), [cfg.cardN])
@@ -425,35 +426,86 @@ export default function Hero() {
               width: isM ? '100%' : 'auto',
               alignItems: 'center',
             }}>
-              <Link
-                  href="/creator"
-                  className="font-dm bg-white text-[#0a0a08] rounded-full uppercase transition-all duration-300 hover:bg-white/90 hover:scale-[1.03] active:scale-[0.97] flex items-center justify-center"
+              <button
+                  onClick={() => setChoiceType('creator')}
+                  className="font-dm bg-white text-[#0a0a08] rounded-full uppercase transition-all duration-300 hover:bg-white/90 hover:scale-[1.03] active:scale-[0.97] flex items-center justify-center cursor-pointer"
                   style={{
                     height: isM ? 38 : isT ? 46 : 50,
                     paddingInline: isM ? 20 : 28,
                     fontSize: isM ? 11 : 13, fontWeight: 600, letterSpacing: '0.08em',
-                    textDecoration: 'none',
+                    border: 'none',
                     ...(isM ? { width: '100%', maxWidth: 200 } : {}),
                   }}
               >
                 {t('hero_btn_creators')}
-              </Link>
-              <Link
-                  href="/business"
-                  className="font-dm text-white rounded-full uppercase transition-all duration-300 hover:bg-white/5 hover:scale-[1.03] active:scale-[0.97] flex items-center justify-center"
+              </button>
+              <button
+                  onClick={() => setChoiceType('business')}
+                  className="font-dm text-white rounded-full uppercase transition-all duration-300 hover:bg-white/5 hover:scale-[1.03] active:scale-[0.97] flex items-center justify-center cursor-pointer"
                   style={{
                     height: isM ? 38 : isT ? 46 : 50,
                     paddingInline: isM ? 20 : 28,
                     fontSize: isM ? 11 : 13, fontWeight: 600, letterSpacing: '0.08em',
                     border: `1px solid ${c.isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,.25)'}`,
                     backdropFilter: 'blur(8px)',
-                    textDecoration: 'none',
+                    background: 'transparent',
                     ...(isM ? { width: '100%', maxWidth: 200 } : {}),
                   }}
               >
                 {t('hero_btn_businesses')}
-              </Link>
+              </button>
             </div>
+
+            {/* Choice modal — login or signup */}
+            {choiceType && (
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}
+                onClick={() => setChoiceType(null)}>
+                <div className="w-full max-w-sm rounded-2xl p-6 animate-fade-in" style={{
+                  background: c.isLight ? '#fff' : '#1a1815',
+                  border: `1px solid ${c.divider}`,
+                  boxShadow: '0 25px 50px rgba(0,0,0,0.4)',
+                }} onClick={e => e.stopPropagation()}>
+                  <h3 className="font-dm text-[18px] font-bold text-center mb-2" style={{ color: c.text }}>
+                    {choiceType === 'creator'
+                      ? (t('hero_btn_creators'))
+                      : (t('hero_btn_businesses'))}
+                  </h3>
+                  <p className="font-dm text-[13px] text-center mb-6" style={{ color: c.textMuted }}>
+                    {locale === 'fr'
+                      ? choiceType === 'creator'
+                        ? 'Rejoins 2960 Agency et accède aux meilleures collabs de Paris !'
+                        : 'Boostez votre visibilité avec des créateurs de contenu locaux !'
+                      : choiceType === 'creator'
+                        ? 'Join 2960 Agency and access the best collabs in Paris!'
+                        : 'Boost your visibility with local content creators!'}
+                  </p>
+
+                  <div className="space-y-3">
+                    <Link href={choiceType === 'creator' ? '/creator' : '/business'}
+                      className="font-dm w-full flex items-center justify-center text-[14px] font-semibold py-3.5 rounded-xl transition-all hover:brightness-110"
+                      style={{ background: '#E8471A', color: '#fff', textDecoration: 'none' }}>
+                      {locale === 'fr' ? 'Créer mon compte' : 'Create my account'}
+                    </Link>
+                    <Link href={choiceType === 'creator' ? '/creator/login' : '/restaurant/login'}
+                      className="font-dm w-full flex items-center justify-center text-[14px] font-semibold py-3.5 rounded-xl transition-all hover:brightness-110"
+                      style={{
+                        background: c.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
+                        color: c.isLight ? '#333' : 'rgba(255,255,255,0.7)',
+                        textDecoration: 'none',
+                        border: `1px solid ${c.divider}`,
+                      }}>
+                      {locale === 'fr' ? 'J\'ai déjà un compte' : 'I already have an account'}
+                    </Link>
+                  </div>
+
+                  <button onClick={() => setChoiceType(null)}
+                    className="font-dm w-full text-[12px] mt-4 py-2 cursor-pointer transition-all"
+                    style={{ color: c.textMuted, background: 'none', border: 'none' }}>
+                    {locale === 'fr' ? 'Fermer' : 'Close'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Film grain */}

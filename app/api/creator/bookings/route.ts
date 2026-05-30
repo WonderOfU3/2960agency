@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getCreatorSession } from '@/lib/session'
 import { sendBookingConfirmation } from '@/lib/email'
-import { notifyNewBooking } from '@/lib/notifications'
+import { notifyNewBooking, notifyBookingCancelled } from '@/lib/notifications'
 import { nanoid } from 'nanoid'
 import { checkCollabBilling, syncCollabUsage } from '@/lib/collab-billing'
 
@@ -16,7 +16,7 @@ export async function GET() {
     const bookings = await sql`
       SELECT
         b.id, b.creator_id, b.restaurant_id, b.time_slot_id, b.booking_date, b.status,
-        b.slot_start_time, b.slot_end_time, b.num_people,
+        b.created_at, b.slot_start_time, b.slot_end_time, b.num_people,
         b.reconfirmed_at, b.reminder_sent_at,
         b.post_link, b.post_submitted_at, b.claimed_tier, b.claim_status,
         r.name as restaurant_name,
@@ -70,22 +70,31 @@ export async function PATCH(req: NextRequest) {
 
       await sql`UPDATE bookings SET status = 'cancelled' WHERE id = ${bookingId}`
 
-      // Restore billing counters if the booking was confirmed
+      // Restore billing counters if the booking was confirmed (non-blocking)
       if (wasConfirmed) {
-        // Check if restaurant is on trial — decrement trial_collabs_used
-        const resto = await sql`
-          SELECT trial_started_at, trial_ends_at, trial_collabs_used FROM restaurants WHERE id = ${b.restaurant_id}
-        `
-        if (resto.length > 0 && resto[0].trial_started_at && resto[0].trial_collabs_used > 0) {
-          await sql`
-            UPDATE restaurants SET trial_collabs_used = GREATEST(0, trial_collabs_used - 1)
-            WHERE id = ${b.restaurant_id}
+        try {
+          const resto = await sql`
+            SELECT trial_started_at, trial_ends_at, trial_collabs_used FROM restaurants WHERE id = ${b.restaurant_id}
           `
+          if (resto.length > 0 && resto[0].trial_started_at && resto[0].trial_collabs_used > 0) {
+            await sql`
+              UPDATE restaurants SET trial_collabs_used = GREATEST(0, trial_collabs_used - 1)
+              WHERE id = ${b.restaurant_id}
+            `
+          }
+          await syncCollabUsage(b.restaurant_id, b.booking_date)
+        } catch (billingErr) {
+          console.error('Billing restore error (booking already cancelled):', billingErr)
         }
-
-        // Re-sync collab_usage (recount confirmed bookings for that month)
-        await syncCollabUsage(b.restaurant_id, b.booking_date)
       }
+
+      // Notify restaurant
+      try {
+        const cr = await sql`SELECT first_name, last_name FROM creators WHERE id = ${session.id}`
+        if (cr.length > 0) {
+          await notifyBookingCancelled(b.restaurant_id, `${cr[0].first_name} ${cr[0].last_name}`)
+        }
+      } catch (e) { console.error('Cancel notification error:', e) }
 
       return NextResponse.json({ success: true })
     }
@@ -274,32 +283,40 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Send emails
-    const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-    await sendBookingConfirmation({
-      creatorName: `${creator[0].first_name} ${creator[0].last_name}`,
-      creatorEmail: creator[0].email,
-      creatorPhone: creator[0].phone,
-      creatorTiktok: creator[0].tiktok_username || '',
-      restaurantName: resto.name,
-      restaurantAddress: resto.address,
-      restaurantCity: resto.city,
-      restaurantEmail,
-      restaurantOwner,
-      conversationUrl: `${appUrl}/conversation/${convToken}`,
-      bookingDate: `${DAYS[date.getDay()]} ${date.toLocaleDateString('fr-FR')}`,
-      timeSlot: `${slot[0].start_time.slice(0, 5)} - ${slot[0].end_time.slice(0, 5)}`,
-      offerDescription: resto.offer_description,
-    })
+    // Send emails (non-blocking — booking is already created)
+    try {
+      const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+      await sendBookingConfirmation({
+        creatorName: `${creator[0].first_name} ${creator[0].last_name}`,
+        creatorEmail: creator[0].email,
+        creatorPhone: creator[0].phone,
+        creatorTiktok: creator[0].tiktok_username || '',
+        restaurantName: resto.name,
+        restaurantAddress: resto.address,
+        restaurantCity: resto.city,
+        restaurantEmail,
+        restaurantOwner,
+        conversationUrl: `${appUrl}/conversation/${convToken}`,
+        bookingDate: `${DAYS[date.getDay()]} ${date.toLocaleDateString('fr-FR')}`,
+        timeSlot: `${slot[0].start_time.slice(0, 5)} - ${slot[0].end_time.slice(0, 5)}`,
+        offerDescription: resto.offer_description,
+      })
+    } catch (emailErr) {
+      console.error('Email send error (booking already created):', emailErr)
+    }
 
     // In-app notification for restaurant
-    const DAYS_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
-    await notifyNewBooking(
-      `${creator[0].first_name} ${creator[0].last_name}`,
-      restaurantId,
-      `${DAYS_SHORT[date.getDay()]} ${date.toLocaleDateString('fr-FR')}`
-    )
+    try {
+      const DAYS_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+      await notifyNewBooking(
+        `${creator[0].first_name} ${creator[0].last_name}`,
+        restaurantId,
+        `${DAYS_SHORT[date.getDay()]} ${date.toLocaleDateString('fr-FR')}`
+      )
+    } catch (notifErr) {
+      console.error('Notification error:', notifErr)
+    }
 
     return NextResponse.json({ success: true })
   } catch (err) {
