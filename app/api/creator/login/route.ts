@@ -4,7 +4,8 @@ import { verifyPassword } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json()
+    const { email: rawEmail, password } = await req.json()
+    const email = typeof rawEmail === 'string' ? rawEmail.trim() : rawEmail
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email et mot de passe requis' }, { status: 400 })
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
 
     const creators = await sql`
       SELECT id, email, password_hash, first_name, last_name, status, ambassador_code
-      FROM creators WHERE email = ${email}
+      FROM creators WHERE LOWER(email) = LOWER(${email})
     `
 
     if (creators.length === 0) {
@@ -30,6 +31,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         error: 'Votre compte est en cours de validation. Nous vous contacterons bientôt.',
         status: 'pending_validation'
+      }, { status: 403 })
+    }
+
+    if (creator.status === 'rejected') {
+      return NextResponse.json({
+        error: 'Votre candidature n\'a pas été retenue.',
+        status: 'rejected'
       }, { status: 403 })
     }
 

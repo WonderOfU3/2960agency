@@ -4,7 +4,8 @@ import { verifyPassword } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json()
+    const { email: rawEmail, password } = await req.json()
+    const email = typeof rawEmail === 'string' ? rawEmail.trim() : rawEmail
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email et mot de passe requis' }, { status: 400 })
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
 
     const users = await sql`
       SELECT id, email, password_hash, owner_name, business_name, phone, restaurant_id, status
-      FROM restaurant_users WHERE email = ${email}
+      FROM restaurant_users WHERE LOWER(email) = LOWER(${email})
     `
 
     if (users.length === 0) {
