@@ -9,6 +9,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import NotificationBell from '@/components/NotificationBell'
 import { useTheme } from '@/context/ThemeContext'
 import { useToast } from '@/components/ui/Toast'
+import GamificationWidget from '@/components/GamificationWidget'
 
 const T = {
   fr: {
@@ -639,6 +640,9 @@ function CreatorDashboard() {
           </div>
         )}
 
+        {/* Gamification widget — visible on offers tab */}
+        {tab === 'offers' && <GamificationWidget />}
+
         {/* Restaurant offers grid */}
         {tab === 'offers' && (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
@@ -801,6 +805,43 @@ function CreatorDashboard() {
                   </div>{/* close info+calendar row */}
                 </div>
               )})
+            )}
+            {/* Empty state: blurred placeholder cards to fill to 8 minimum */}
+            {restaurants.length < 8 && Array.from({ length: Math.max(0, 8 - restaurants.length) }).map((_, i) => {
+              const levels = ['silver', 'gold', 'platinum']
+              const level = levels[i % 3]
+              const levelLabel = level === 'silver' ? 'Silver' : level === 'gold' ? 'Gold' : 'Platinum'
+              const levelEmoji = level === 'silver' ? '🥈' : level === 'gold' ? '🥇' : '💎'
+              return (
+                <div key={`placeholder-${i}`} className="rounded-2xl overflow-hidden relative" style={{
+                  background: c.cardBg,
+                  border: `1px solid ${c.divider}`,
+                  filter: 'blur(6px)',
+                  minHeight: 280,
+                }}>
+                  <div className="h-36" style={{ background: 'rgba(255,255,255,0.03)' }} />
+                  <div className="p-4 space-y-2">
+                    <div className="h-4 rounded" style={{ background: 'rgba(255,255,255,0.06)', width: '60%' }} />
+                    <div className="h-3 rounded" style={{ background: 'rgba(255,255,255,0.04)', width: '80%' }} />
+                    <div className="h-3 rounded" style={{ background: 'rgba(255,255,255,0.03)', width: '40%' }} />
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center" style={{ filter: 'none', backdropFilter: 'none' }}>
+                    <div className="text-center px-4 py-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.85)' }}>
+                      <span style={{ fontSize: 24 }}>🔒</span>
+                      <p className="font-dm text-[12px] font-semibold mt-1" style={{ color: '#fff' }}>
+                        {levelEmoji} {locale === 'fr' ? `Disponible au niveau ${levelLabel}` : `Available at ${levelLabel} level`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+            {restaurants.length < 8 && (
+              <p className="font-dm text-[12px] text-center py-4 col-span-full" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                {locale === 'fr'
+                  ? 'De nouveaux restaurants rejoignent chaque semaine. Monte de niveau pour accéder en avant-première.'
+                  : 'New restaurants join every week. Level up to get early access.'}
+              </p>
             )}
           </div>
         )}

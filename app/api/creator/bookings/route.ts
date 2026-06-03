@@ -5,6 +5,7 @@ import { sendBookingConfirmation } from '@/lib/email'
 import { notifyNewBooking, notifyBookingCancelled } from '@/lib/notifications'
 import { nanoid } from 'nanoid'
 import { checkCollabBilling, syncCollabUsage } from '@/lib/collab-billing'
+import { consumeCredit, handleCreatorCancellation, calculateVideoDeadline } from '@/lib/gamification'
 
 export async function GET() {
   const session = await getCreatorSession()
@@ -54,8 +55,10 @@ export async function PATCH(req: NextRequest) {
     if (action === 'cancel') {
       // Only the creator who owns the booking can cancel
       const booking = await sql`
-        SELECT id, status, booking_date, restaurant_id FROM bookings
-        WHERE id = ${bookingId} AND creator_id = ${session.id}
+        SELECT b.id, b.status, b.booking_date, b.restaurant_id, b.slot_start_time, ts.start_time
+        FROM bookings b
+        JOIN time_slots ts ON b.time_slot_id = ts.id
+        WHERE b.id = ${bookingId} AND b.creator_id = ${session.id}
       `
       if (booking.length === 0) {
         return NextResponse.json({ error: 'Réservation non trouvée' }, { status: 404 })
@@ -70,7 +73,16 @@ export async function PATCH(req: NextRequest) {
 
       await sql`UPDATE bookings SET status = 'cancelled' WHERE id = ${bookingId}`
 
-      // Restore billing counters if the booking was confirmed (non-blocking)
+      // Apply gamification cancellation logic (credits + points)
+      if (wasConfirmed) {
+        // Calculate the booking start datetime
+        const bookingDateStr = String(b.booking_date).split('T')[0]
+        const startTime = b.slot_start_time || b.start_time || '12:00'
+        const bookingStart = new Date(`${bookingDateStr}T${startTime}`)
+        await handleCreatorCancellation(session.id, bookingId, bookingStart)
+      }
+
+      // Restore restaurant billing counters if the booking was confirmed (non-blocking)
       if (wasConfirmed) {
         try {
           const resto = await sql`
@@ -123,6 +135,21 @@ export async function POST(req: NextRequest) {
     if (parseInt(overdueCheck[0].cnt) > 0) {
       return NextResponse.json({
         error: 'Tu as un post en retard. Soumets le lien avant de faire une nouvelle réservation.',
+      }, { status: 403 })
+    }
+
+    // Check serial cancel block
+    const creatorCheck = await sql`
+      SELECT serial_cancel_blocked, credits_current FROM creators WHERE id = ${session.id}
+    `
+    if (creatorCheck.length > 0 && creatorCheck[0].serial_cancel_blocked) {
+      return NextResponse.json({
+        error: 'Tu as effectué 2 annulations de dernière minute ce mois. Les nouvelles réservations seront disponibles le 1er du mois prochain.',
+      }, { status: 403 })
+    }
+    if (creatorCheck.length > 0 && creatorCheck[0].credits_current <= 0) {
+      return NextResponse.json({
+        error: 'Tu as utilisé tous tes crédits ce mois. De nouveaux crédits seront disponibles le 1er du mois prochain.',
       }, { status: 403 })
     }
 
@@ -242,6 +269,14 @@ export async function POST(req: NextRequest) {
               ${slotStartTime || null}, ${slotEndTime || null}, ${numPeople || 1})
       RETURNING id
     `
+
+    // Consume a credit if auto-confirmed
+    if (bookingStatus === 'confirmed') {
+      await consumeCredit(session.id)
+      // Set video deadline
+      const vDeadline = calculateVideoDeadline(date)
+      await sql`UPDATE bookings SET video_deadline = ${vDeadline.toISOString()} WHERE id = ${bookingResult[0].id}`
+    }
 
     // If auto-confirmed as a trial collab, increment trial_collabs_used
     if (bookingStatus === 'confirmed' && billingResult?.onTrial) {

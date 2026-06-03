@@ -6,6 +6,7 @@ import { notifyBookingAccepted, notifyBookingRefused } from '@/lib/notifications
 import { nanoid } from 'nanoid'
 import { checkCollabBilling, syncCollabUsage } from '@/lib/collab-billing'
 import { stripe, PLAN_CONFIG, NO_SUB_EXTRA_PRICE_ID } from '@/lib/stripe'
+import { consumeCredit, calculateVideoDeadline, handleRestaurantCancellation } from '@/lib/gamification'
 
 export async function GET() {
   const session = await getRestaurantSession()
@@ -136,6 +137,12 @@ export async function PATCH(req: NextRequest) {
       // Free collab — confirm directly
       await sql`UPDATE bookings SET status = 'confirmed' WHERE id = ${bookingId}`
 
+      // Consume creator credit + set video deadline
+      await consumeCredit(b.creator_id)
+      const bookingDate = new Date(b.booking_date)
+      const vDeadline = calculateVideoDeadline(bookingDate)
+      await sql`UPDATE bookings SET video_deadline = ${vDeadline.toISOString()} WHERE id = ${bookingId}`
+
       // If this was a trial collab, increment trial_collabs_used directly
       if (billing.onTrial) {
         const rid = Number(session.restaurantId)
@@ -186,6 +193,11 @@ export async function PATCH(req: NextRequest) {
     if (action === 'refuse') {
       const wasConfirmed = b.status === 'confirmed'
       await sql`UPDATE bookings SET status = 'refused' WHERE id = ${bookingId}`
+
+      // Refund creator credit if it was confirmed (restaurant cancellation = no penalty)
+      if (wasConfirmed) {
+        await handleRestaurantCancellation(b.creator_id)
+      }
 
       // Restore billing counters if it was confirmed
       if (wasConfirmed) {

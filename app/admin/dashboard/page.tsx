@@ -114,10 +114,112 @@ const REWARD_COLORS: Record<string, { bg: string; text: string; label: string }>
   paid: { bg: 'rgba(74,222,128,0.1)', text: '#4ade80', label: 'Payé' },
 }
 
+function DisputesTab({ cardBg, cardBorder, textMuted }: { cardBg: string; cardBorder: string; textMuted: string }) {
+  const [disputes, setDisputes] = useState<{ id: number; rating: number; comment: string | null; creator_name: string; restaurant_name: string; created_at: string; booking_id: number }[]>([])
+  const [collabsToVerify, setCollabsToVerify] = useState<{ id: number; creator_name: string; restaurant_name: string; post_link: string; booking_date: string }[]>([])
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    if (loaded) return
+    Promise.all([
+      fetch('/api/admin/disputes').then(r => r.json()),
+      fetch('/api/admin/collabs-to-verify').then(r => r.json()),
+    ]).then(([d, v]) => {
+      if (d.disputes) setDisputes(d.disputes)
+      if (v.collabs) setCollabsToVerify(v.collabs)
+      setLoaded(true)
+    }).catch(() => setLoaded(true))
+  }, [loaded])
+
+  const handleVerify = async (bookingId: number) => {
+    const res = await fetch('/api/admin/verify-video', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookingId }),
+    })
+    if (res.ok) {
+      setCollabsToVerify(prev => prev.filter(c => c.id !== bookingId))
+      alert('Vidéo validée ✓')
+    }
+  }
+
+  const handleUpdateRating = async (reviewId: number, newRating: number) => {
+    const res = await fetch('/api/admin/disputes', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reviewId, newRating }),
+    })
+    if (res.ok) {
+      setDisputes(prev => prev.filter(d => d.id !== reviewId))
+      alert('Note mise à jour ✓')
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Videos to verify */}
+      <div>
+        <p className="font-dm text-[11px] uppercase tracking-[0.06em] mb-3" style={{ color: textMuted }}>
+          Vidéos à vérifier ({collabsToVerify.length})
+        </p>
+        {collabsToVerify.length === 0 ? (
+          <p className="font-dm text-[13px]" style={{ color: textMuted }}>Aucune vidéo en attente</p>
+        ) : collabsToVerify.map(cv => (
+          <div key={cv.id} className="flex items-center justify-between p-4 rounded-xl mb-2" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+            <div>
+              <p className="font-dm font-semibold text-[13px] text-white">{cv.creator_name}</p>
+              <p className="font-dm text-[11px]" style={{ color: textMuted }}>{cv.restaurant_name} · {cv.booking_date}</p>
+              {cv.post_link && <a href={cv.post_link} target="_blank" rel="noopener noreferrer" className="font-dm text-[11px]" style={{ color: '#E8471A' }}>Voir le post</a>}
+            </div>
+            <button onClick={() => handleVerify(cv.id)}
+              className="font-dm text-[12px] font-semibold px-4 py-2 rounded-lg cursor-pointer"
+              style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80', border: 'none' }}>
+              Valider vidéo
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Disputed ratings */}
+      <div>
+        <p className="font-dm text-[11px] uppercase tracking-[0.06em] mb-3" style={{ color: textMuted }}>
+          Notes contestées ({disputes.length})
+        </p>
+        {disputes.length === 0 ? (
+          <p className="font-dm text-[13px]" style={{ color: textMuted }}>Aucune contestation</p>
+        ) : disputes.map(d => (
+          <div key={d.id} className="p-4 rounded-xl mb-2" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <p className="font-dm font-semibold text-[13px] text-white">
+                  {d.creator_name} — {d.rating}★ par {d.restaurant_name}
+                </p>
+                {d.comment && <p className="font-dm text-[12px] mt-1" style={{ color: textMuted }}>« {d.comment} »</p>}
+                <p className="font-dm text-[10px] mt-1" style={{ color: textMuted }}>{new Date(d.created_at).toLocaleDateString('fr-FR')}</p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-2">
+              {[1, 2, 3, 4, 5].map(n => (
+                <button key={n} onClick={() => handleUpdateRating(d.id, n)}
+                  className="font-dm text-[12px] px-3 py-1.5 rounded-lg cursor-pointer"
+                  style={{
+                    background: n === d.rating ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.06)',
+                    color: n === d.rating ? '#ef4444' : '#8a8580',
+                    border: 'none',
+                  }}>
+                  {n}★
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function AdminDashboard() {
   const router = useRouter()
   const { c } = useTheme()
-  const [tab, setTab] = useState<'creator_apps' | 'creators' | 'applications' | 'restaurants' | 'collabs' | 'claims' | 'analytics'>('creator_apps')
+  const [tab, setTab] = useState<'creator_apps' | 'creators' | 'applications' | 'restaurants' | 'collabs' | 'claims' | 'analytics' | 'disputes'>('creator_apps')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [analytics, setAnalytics] = useState<any>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
@@ -364,6 +466,7 @@ export default function AdminDashboard() {
             { key: 'restaurants' as const, label: 'Restaurants' },
             { key: 'collabs' as const, label: 'Collabs' },
             { key: 'claims' as const, label: 'Claims' },
+            { key: 'disputes' as const, label: 'Disputes' },
             { key: 'analytics' as const, label: 'Analytics' },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
@@ -1072,6 +1175,10 @@ export default function AdminDashboard() {
               </div>
             ))}
           </div>
+        )}
+
+        {tab === 'disputes' && (
+          <DisputesTab cardBg={c.cardBg} cardBorder={c.cardBorder} textMuted={c.textMuted} />
         )}
 
         {tab === 'analytics' && (

@@ -9,6 +9,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import NotificationBell from '@/components/NotificationBell'
 import { useTheme } from '@/context/ThemeContext'
 import { useToast } from '@/components/ui/Toast'
+import RatingWidget from '@/components/RatingWidget'
 
 const T = {
   fr: {
@@ -801,6 +802,9 @@ export default function RestaurantDashboard() {
         {/* === COLLABS TAB === */}
         {tab === 'collabs' && (
           <div style={{ maxWidth: 720 }}>
+            {/* Rating widget — pending creator evaluations */}
+            <RatingWidget />
+
             {/* Auto-accept toggle */}
             <label className="flex items-center gap-3 mb-5 cursor-pointer">
               <div onClick={toggleAutoAccept} className="w-10 h-5 rounded-full relative transition-all" style={{ background: autoAccept ? '#E8471A' : 'var(--input-bg, rgba(255,255,255,0.1))', border: autoAccept ? 'none' : '1px solid var(--input-border, rgba(255,255,255,0.15))' }}>
