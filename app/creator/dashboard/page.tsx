@@ -10,6 +10,7 @@ import NotificationBell from '@/components/NotificationBell'
 import { useTheme } from '@/context/ThemeContext'
 import { useToast } from '@/components/ui/Toast'
 import GamificationWidget from '@/components/GamificationWidget'
+import WalletIdWidget from '@/components/WalletIdWidget'
 
 const T = {
   fr: {
@@ -1309,6 +1310,7 @@ function CreatorDashboard() {
         {/* Profile tab */}
         {tab === 'profile' && profile && (
           <div style={{ maxWidth: 600 }}>
+            <WalletIdWidget />
             <h2 className="font-dm font-bold text-[20px] mb-6" style={{ color: c.text }}>{t.profileTitle}</h2>
 
             {/* Username & niche */}
