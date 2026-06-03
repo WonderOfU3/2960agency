@@ -1,5 +1,4 @@
 import sql from '@/lib/db'
-import { createReferralPayout } from '@/lib/stripe'
 import { createNotification } from '@/lib/notifications'
 
 // ═══════════════════════════════════════════
@@ -413,45 +412,15 @@ export async function checkReferralMilestone(creatorId: number): Promise<boolean
         AND bonus_paid_at IS NULL
     `
 
-    // Trigger Stripe payout (100€)
-    const creator = await sql`
-      SELECT stripe_connect_id, stripe_onboarding_complete, first_name, email
-      FROM creators WHERE id = ${creatorId}
-    `
-    if (creator.length > 0 && creator[0].stripe_connect_id && creator[0].stripe_onboarding_complete) {
-      try {
-        await createReferralPayout(creator[0].stripe_connect_id, creatorId)
-        await createNotification({
-          recipientType: 'creator',
-          recipientId: creatorId,
-          type: 'referral_bonus_paid',
-          title: 'Félicitations — 100€ en route !',
-          body: '5 restaurants actifs avec ton code. 100€ ont été virés sur ton compte Stripe.',
-          link: '/creator/dashboard?tab=referrals',
-        })
-      } catch (err) {
-        console.error('Referral payout failed:', err)
-        // Notify admin of payout failure
-        await createNotification({
-          recipientType: 'admin',
-          recipientId: 1,
-          type: 'payout_failed',
-          title: 'Payout parrainage échoué',
-          body: `Payout 100€ échoué pour ${creator[0].first_name} (${creator[0].email}). Vérifier Stripe.`,
-          link: '/admin/dashboard',
-        })
-      }
-    } else {
-      // Creator hasn't connected Stripe — notify admin
-      await createNotification({
-        recipientType: 'admin',
-        recipientId: 1,
-        type: 'payout_pending',
-        title: 'Payout parrainage en attente',
-        body: `${creator[0]?.first_name || 'Créateur'} a atteint 5 parrainages mais n'a pas de compte Stripe Connect.`,
-        link: '/admin/dashboard',
-      })
-    }
+    // Notify admin — payout is handled manually for now
+    await createNotification({
+      recipientType: 'admin',
+      recipientId: 1,
+      type: 'referral_milestone',
+      title: 'Parrainage 5/5 atteint',
+      body: `Un créateur a atteint 5 parrainages actifs. Payout 100€ à traiter manuellement.`,
+      link: '/admin/dashboard',
+    })
 
     return true
   }
