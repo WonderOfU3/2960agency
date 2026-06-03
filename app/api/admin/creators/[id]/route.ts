@@ -19,7 +19,7 @@ export async function PATCH(
     const { action } = body
 
     if (action === 'validate') {
-      await sql`UPDATE creators SET status = 'active' WHERE id = ${parseInt(id)}`
+      await sql`UPDATE creators SET status = 'active', validated_at = NOW(), onboarding_step = 1 WHERE id = ${parseInt(id)}`
 
       // Send validation email to creator
       const creator = await sql`

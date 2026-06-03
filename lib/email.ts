@@ -29,6 +29,53 @@ function buildHtml(title: string, rows: [string, unknown][]): string {
 </div></body></html>`
 }
 
+function buildDripEmail(firstName: string, body: string, extra: string | null, ctaLabel: string, ctaUrl: string): string {
+  const bodyHtml = body.split('\n').map(line => line.trim()).filter(Boolean).map(line =>
+    line.startsWith('•') ? `<li style="margin:4px 0;">${line.slice(1).trim()}</li>` : `<p style="color:#c8c3b8;font-size:15px;margin:0 0 16px;line-height:1.6;">${line}</p>`
+  )
+  const hasListItems = bodyHtml.some(h => h.startsWith('<li'))
+  const bodyContent = hasListItems
+    ? bodyHtml.map(h => h.startsWith('<li') ? h : h).join('').replace(/<\/p><li/g, '</p><ul style="color:#c8c3b8;font-size:14px;padding-left:20px;margin:0 0 16px;line-height:1.8;"><li').replace(/<\/li><p/g, '</li></ul><p')
+    : bodyHtml.join('')
+  // Fix unclosed ul
+  const finalBody = bodyContent.includes('<ul') && !bodyContent.includes('</ul>') ? bodyContent + '</ul>' : bodyContent
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:560px;margin:40px auto;padding:0 20px;">
+  <div style="margin-bottom:32px;">
+    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
+  </div>
+  <p style="color:#c8c3b8;font-size:15px;margin:0 0 24px;line-height:1.6;">${firstName},</p>
+  ${finalBody}
+  ${extra ? `<p style="color:#8a8580;font-size:14px;margin:0 0 24px;line-height:1.6;">${extra}</p>` : ''}
+  <div style="margin:28px 0;">
+    <a href="${ctaUrl}"
+       style="display:inline-block;background:#E8471A;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+      ${ctaLabel} →
+    </a>
+  </div>
+  <p style="color:#2a2825;font-size:11px;margin-top:40px;">2960</p>
+</div></body></html>`
+}
+
+async function sendToUser(email: string, subject: string, htmlContent: string) {
+  try {
+    await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'api-key': BREVO_API_KEY },
+      body: JSON.stringify({
+        sender: { name: FROM_NAME, email: FROM_EMAIL },
+        to: [{ email }],
+        subject,
+        htmlContent,
+      }),
+    })
+  } catch (e) {
+    console.error('Drip email failed:', e)
+  }
+}
+
 async function sendEmail(subject: string, htmlContent: string) {
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
@@ -334,121 +381,110 @@ export async function sendCreatorWelcome(creator: {
   }
 }
 
-// NEW: Account validation email
+// ═══════════════════════════════════════
+// C1 — Creator validated (immediate)
+// ═══════════════════════════════════════
 export async function sendCreatorValidation(creator: {
   firstName: string
   email: string
 }) {
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<div style="max-width:660px;margin:40px auto;padding:0 20px;">
-  <div style="margin-bottom:28px;">
-    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
-  </div>
-  <h1 style="color:#fff;font-size:24px;font-weight:700;margin:0 0 12px;">🎉 Ton compte est activé !</h1>
-  <p style="color:#c8c3b8;font-size:15px;margin:0 0 28px;line-height:1.6;">
-    Salut ${creator.firstName},<br><br>
-    Bonne nouvelle ! Ton compte 2960 Agency est maintenant actif. Tu peux dès maintenant accéder aux offres de collabs.
-  </p>
-
-  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'}/creator/login"
-     style="display:inline-block;background:#E8471A;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;margin-bottom:28px;">
-    Se connecter au dashboard
-  </a>
-
-  <div style="background:#191714;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid #2a2825;">
-    <p style="color:#8a8580;font-size:13px;margin:0 0 12px;">🚀 Prochaines étapes</p>
-    <p style="color:#c8c3b8;font-size:13px;margin:0;line-height:1.6;">
-      1. Connecte-toi avec ton email et mot de passe<br>
-      2. Parcours les offres de restaurants disponibles<br>
-      3. Réserve tes premiers créneaux de collab<br>
-      4. Crée du contenu incroyable ! 🎥
-    </p>
-  </div>
-
-  <p style="color:#8a8580;font-size:13px;margin-bottom:6px;">Bonne chance et à très vite,</p>
-  <p style="color:#c8c3b8;font-size:13px;margin:0;font-weight:600;">L'équipe 2960 Agency</p>
-
-  <p style="color:#2a2825;font-size:11px;margin-top:32px;">contact@2960agency.com</p>
-</div></body></html>`
-
-  try {
-    await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': BREVO_API_KEY,
-      },
-      body: JSON.stringify({
-        sender: { name: FROM_NAME, email: FROM_EMAIL },
-        to: [{ email: creator.email }],
-        subject: '✅ Ton compte 2960 Agency est activé !',
-        htmlContent: html,
-      }),
-    })
-  } catch (e) {
-    console.error('Validation email failed:', e)
-  }
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    creator.firstName,
+    'Profil validé. Tu as accès à la plateforme.',
+    `Sur 2960 : tu réserves un créneau dans un resto, tu viens avec qui tu veux, tu filmes, tu publies. Aucun frais. Certains restos ajoutent une prime si ta vidéo cartonne — tu la vois sur chaque offre.`,
+    'Réserver ma 1ère collab', `${appUrl}/creator/dashboard`,
+  )
+  await sendToUser(creator.email, 'Tu es accepté(e) sur 2960 ✓', html)
 }
 
-// NEW: Email to restaurant when their application is accepted
+// C2 — J+1 if no booking
+export async function sendCreatorDripC2(creator: { firstName: string; email: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    creator.firstName,
+    'Les créneaux sont ouverts en ce moment — repas offert, contenu réel pour ton feed, et une prime possible si la vidéo performe.',
+    null,
+    'Voir les restaurants', `${appUrl}/creator/dashboard`,
+  )
+  await sendToUser(creator.email, 'Repas offert + contenu + potentiellement une prime', html)
+}
+
+// C3 — J+3 if no booking
+export async function sendCreatorDripC3(creator: { firstName: string; email: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    creator.firstName,
+    'Chaque collab sur 2960 te fait avancer dans les niveaux créateurs. Plus tu avances, plus tu débloques d\'avantages. Ça commence dès ta 1ère réservation confirmée.',
+    null,
+    'Réserver maintenant', `${appUrl}/creator/dashboard`,
+  )
+  await sendToUser(creator.email, 'Ta 1ère collab démarre tes points', html)
+}
+
+// C4 — J+7 if no booking
+export async function sendCreatorDripC4(creator: { firstName: string; email: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    creator.firstName,
+    'Repas offert, contenu pour ton feed, primes sur les vidéos qui performent. Ton profil est prêt. Il manque juste une réservation.',
+    'Si quelque chose bloque, réponds à cet email.',
+    'Accéder à la plateforme', `${appUrl}/creator/dashboard`,
+  )
+  await sendToUser(creator.email, 'Ton profil est validé — les créneaux sont là', html)
+}
+
+// ═══════════════════════════════════════
+// R1 — Restaurant accepted (immediate)
+// ═══════════════════════════════════════
 export async function sendBusinessAccepted(business: {
   businessName: string
   ownerName: string
   email: string
 }) {
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<div style="max-width:660px;margin:40px auto;padding:0 20px;">
-  <div style="margin-bottom:28px;">
-    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
-  </div>
-  <h1 style="color:#fff;font-size:24px;font-weight:700;margin:0 0 12px;">🎉 Votre candidature est acceptée !</h1>
-  <p style="color:#c8c3b8;font-size:15px;margin:0 0 28px;line-height:1.6;">
-    Bonjour ${business.ownerName},<br><br>
-    Nous avons le plaisir de vous informer que <strong style="color:#E8471A;">${business.businessName}</strong> a été accepté sur la plateforme 2960 Agency !
-  </p>
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    business.ownerName,
+    `Ton compte est créé. Tes 3 premières collabs sont incluses — 30 jours pour les utiliser.
 
-  <div style="background:#191714;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid #2a2825;">
-    <p style="color:#8a8580;font-size:13px;margin:0 0 12px;">🚀 Prochaines étapes</p>
-    <p style="color:#c8c3b8;font-size:13px;margin:0;line-height:1.8;">
-      1. Notre équipe configure votre fiche restaurant<br>
-      2. Nous définissons les créneaux de collab disponibles<br>
-      3. Votre fiche sera visible par nos créateurs<br>
-      4. Vous recevrez un email à chaque réservation de créateur
-    </p>
-  </div>
+Une collab = un créateur vient filmer chez toi, publie sur son compte. La vidéo reste indexée sur TikTok 12 mois. Ton seul coût : le repas le jour J.
 
-  <div style="background:rgba(232,71,26,0.08);border:1px solid rgba(232,71,26,0.15);border-radius:12px;padding:20px;margin-bottom:28px;">
-    <p style="color:#E8471A;font-size:13px;font-weight:600;margin:0 0 8px;">✨ Ce que ça veut dire pour vous</p>
-    <p style="color:#c8c3b8;font-size:13px;margin:0;line-height:1.6;">
-      Des créateurs locaux vont venir dans votre établissement, créer du contenu authentique et le partager avec leur audience. Plus de visibilité, plus de clients, sans effort marketing de votre côté.
-    </p>
-  </div>
+Pour que les créateurs te trouvent, publie ton offre maintenant. 5 minutes :
+• Nombre de personnes max par réservation
+• Tes créneaux dispo
+• Nombre de créateurs par semaine`,
+    null,
+    'Publier mon offre', `${appUrl}/restaurant/dashboard`,
+  )
+  await sendToUser(business.email, 'Bienvenue — tes 3 collabs gratuites t\'attendent', html)
+}
 
-  <p style="color:#8a8580;font-size:13px;margin-bottom:6px;">Des questions ?</p>
-  <p style="color:#c8c3b8;font-size:13px;margin:0;">Contactez-nous : <a href="mailto:contact@2960agency.com" style="color:#E8471A;text-decoration:none;">contact@2960agency.com</a></p>
+// R2 — J+2 if no offer published
+export async function sendRestoDripR2(resto: { ownerName: string; email: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    resto.ownerName,
+    'Ton compte est ouvert depuis 2 jours. Tant que ton offre n\'est pas publiée, les créateurs sur 2960 ne peuvent pas te trouver. Ça prend 5 minutes.',
+    null,
+    'Publier mon offre', `${appUrl}/restaurant/dashboard`,
+  )
+  await sendToUser(resto.email, 'Ton resto n\'est pas encore visible', html)
+}
 
-  <p style="color:#2a2825;font-size:11px;margin-top:32px;">2960 Agency — Bienvenue ! 🚀</p>
-</div></body></html>`
+// R3 — J+7 if no offer published
+export async function sendRestoDripR3(resto: { ownerName: string; email: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    resto.ownerName,
+    `Tes 3 collabs offertes expirent dans 23 jours.
 
-  try {
-    await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': BREVO_API_KEY,
-      },
-      body: JSON.stringify({
-        sender: { name: FROM_NAME, email: FROM_EMAIL },
-        to: [{ email: business.email }],
-        subject: '🎉 Votre candidature 2960 Agency est acceptée !',
-        htmlContent: html,
-      }),
-    })
-  } catch (e) {
-    console.error('Business accepted email failed:', e)
-  }
+Chaque collab = une vidéo publiée sur TikTok ou Instagram, maintenue en ligne 12 mois. Le contenu tourne encore bien après que le créateur soit reparti — sans que tu gères quoi que ce soit.
+
+Pour les activer : ton offre doit être en ligne. 5 minutes.`,
+    null,
+    'Activer mes collabs', `${appUrl}/restaurant/dashboard`,
+  )
+  await sendToUser(resto.email, 'Il reste 23 jours pour tes 3 collabs', html)
 }
 
 // NEW: Email to restaurant when their application is rejected

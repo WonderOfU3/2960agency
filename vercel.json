@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/gamification?secret=${CRON_SECRET}",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/drip?secret=${CRON_SECRET}",
+      "schedule": "0 9 * * *"
     }
   ]
 }
