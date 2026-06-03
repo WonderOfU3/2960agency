@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getAdminSession } from '@/lib/session'
 import { sendCreatorValidation } from '@/lib/email'
+import { hashPassword } from '@/lib/auth'
 
 export async function PATCH(
   req: NextRequest,
@@ -14,7 +15,8 @@ export async function PATCH(
 
   try {
     const { id } = await params
-    const { action } = await req.json()
+    const body = await req.json()
+    const { action } = body
 
     if (action === 'validate') {
       await sql`UPDATE creators SET status = 'active' WHERE id = ${parseInt(id)}`
@@ -46,6 +48,16 @@ export async function PATCH(
     if (action === 'mark_paid') {
       await sql`UPDATE creators SET reward_status = 'paid' WHERE id = ${parseInt(id)}`
       return NextResponse.json({ success: true, reward_status: 'paid' })
+    }
+
+    if (action === 'reset_password') {
+      const newPassword = body.newPassword
+      if (!newPassword || newPassword.length < 8) {
+        return NextResponse.json({ error: 'Mot de passe trop court (min 8 caractères)' }, { status: 400 })
+      }
+      const hash = await hashPassword(newPassword)
+      await sql`UPDATE creators SET password_hash = ${hash} WHERE id = ${parseInt(id)}`
+      return NextResponse.json({ success: true })
     }
 
     return NextResponse.json({ error: 'Action invalide' }, { status: 400 })

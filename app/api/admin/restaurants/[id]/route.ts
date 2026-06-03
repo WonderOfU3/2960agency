@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getAdminSession } from '@/lib/session'
+import { hashPassword } from '@/lib/auth'
 
 export async function PATCH(
   req: NextRequest,
@@ -65,6 +66,16 @@ export async function PATCH(
           is_published = ${body.isPublished || false}
         WHERE id = ${parseInt(id)}
       `
+      return NextResponse.json({ success: true })
+    }
+
+    // Reset restaurant user password
+    if (body.action === 'reset_password' && body.newPassword) {
+      if (body.newPassword.length < 8) {
+        return NextResponse.json({ error: 'Mot de passe trop court (min 8 caractères)' }, { status: 400 })
+      }
+      const hash = await hashPassword(body.newPassword)
+      await sql`UPDATE restaurant_users SET password_hash = ${hash} WHERE restaurant_id = ${parseInt(id)}`
       return NextResponse.json({ success: true })
     }
 

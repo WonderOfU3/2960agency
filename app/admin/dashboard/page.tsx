@@ -220,6 +220,40 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleResetCreatorPassword = async (id: number, email: string) => {
+    const newPwd = prompt(`Nouveau mot de passe pour ${email} (min 8 caractères) :`)
+    if (!newPwd || newPwd.length < 8) {
+      if (newPwd !== null) alert('Mot de passe trop court (min 8 caractères)')
+      return
+    }
+    try {
+      const res = await fetch(`/api/admin/creators/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset_password', newPassword: newPwd }),
+      })
+      if (res.ok) alert(`Mot de passe réinitialisé pour ${email}`)
+      else alert('Erreur lors de la réinitialisation')
+    } catch { alert('Erreur serveur') }
+  }
+
+  const handleResetRestoPassword = async (restoId: number, restoName: string) => {
+    const newPwd = prompt(`Nouveau mot de passe pour ${restoName} (min 8 caractères) :`)
+    if (!newPwd || newPwd.length < 8) {
+      if (newPwd !== null) alert('Mot de passe trop court (min 8 caractères)')
+      return
+    }
+    try {
+      const res = await fetch(`/api/admin/restaurants/${restoId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset_password', newPassword: newPwd }),
+      })
+      if (res.ok) alert(`Mot de passe réinitialisé pour ${restoName}`)
+      else alert('Erreur lors de la réinitialisation')
+    } catch { alert('Erreur serveur') }
+  }
+
   const handleApplicationAction = async (id: number, action: 'accept' | 'reject') => {
     try {
       const res = await fetch(`/api/admin/applications/${id}`, {
@@ -500,6 +534,12 @@ export default function AdminDashboard() {
                             Payer 100€
                           </button>
                         )}
+                        <button onClick={() => handleResetCreatorPassword(cr.id, cr.email)}
+                          className="font-dm text-[12px] font-semibold px-4 py-2 rounded-lg cursor-pointer transition-all hover:brightness-110"
+                          style={{ background: 'rgba(255,255,255,0.06)', color: '#8a8580', border: 'none' }}
+                        >
+                          Reset MDP
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -714,6 +754,12 @@ export default function AdminDashboard() {
                           }}
                         >
                           {r.is_blocked ? 'Débloquer' : 'Bloquer'}
+                        </button>
+                        <button onClick={() => handleResetRestoPassword(r.id, r.name)}
+                          className="font-dm text-[12px] font-semibold px-4 py-2 rounded-lg cursor-pointer transition-all hover:brightness-110"
+                          style={{ background: 'rgba(255,255,255,0.06)', color: '#8a8580', border: 'none' }}
+                        >
+                          Reset MDP
                         </button>
                       </div>
                     </div>
