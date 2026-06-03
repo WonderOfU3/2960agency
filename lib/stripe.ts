@@ -107,3 +107,29 @@ export async function createCreatorPayout(amountCents: number, stripeConnectId: 
   })
   return transfer
 }
+
+/**
+ * Transfer 100€ referral bonus to a connected creator account.
+ * Retries up to 3 times on failure.
+ */
+export async function createReferralPayout(stripeConnectId: string, creatorId: number) {
+  let lastError: Error | null = null
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const transfer = await stripe.transfers.create({
+        amount: 10000, // 100€ in cents
+        currency: 'eur',
+        destination: stripeConnectId,
+        metadata: {
+          creatorId: creatorId.toString(),
+          type: 'referral_bonus',
+        },
+      })
+      return transfer
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+      if (attempt < 3) await new Promise(r => setTimeout(r, 2000 * attempt))
+    }
+  }
+  throw lastError
+}

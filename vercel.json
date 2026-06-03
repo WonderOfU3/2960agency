@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/reminders?secret=${CRON_SECRET}",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/gamification?secret=${CRON_SECRET}",
+      "schedule": "0 * * * *"
     }
   ]
 }
