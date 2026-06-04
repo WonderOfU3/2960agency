@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'www',
   server: {
     // Load the live deployed site — all API routes & SSR work as-is
-    url: 'https://2960agency.com',
+    url: 'https://www.2960agency.com',
     cleartext: false,
   },
   ios: {
