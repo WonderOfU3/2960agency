@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { fireCompleteRegistration } from '@/lib/pixels'
@@ -44,7 +44,15 @@ function StickyMobileCta() {
   )
 }
 
-export default function InscrisRestoPage() {
+export default function InscrisRestoPageWrapper() {
+  return (
+    <Suspense>
+      <InscrisRestoPage />
+    </Suspense>
+  )
+}
+
+function InscrisRestoPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [form, setForm] = useState({ email: '', bizName: '', password: '' })
