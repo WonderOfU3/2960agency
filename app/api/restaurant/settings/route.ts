@@ -22,6 +22,11 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
+    if (body.tourSeen === true) {
+      await sql`UPDATE restaurant_users SET onboarding_tour_seen = true WHERE id = ${session.id}`
+      return NextResponse.json({ success: true })
+    }
+
     return NextResponse.json({ error: 'Rien à mettre à jour' }, { status: 400 })
   } catch (err) {
     console.error('Restaurant settings error:', err)

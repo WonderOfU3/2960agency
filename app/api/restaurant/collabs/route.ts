@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getRestaurantSession } from '@/lib/session'
 import { track } from '@/lib/track'
+import { triggerMoteurB } from '@/lib/moteur-b'
 
 // GET: list restaurant's own time slots
 export async function GET() {
@@ -18,21 +19,26 @@ export async function GET() {
     `
 
     const restaurant = await sql`
-      SELECT offer_description, max_bookings_per_day, max_bookings_per_week, max_people, virality_tiers, photos, is_published, directives, auto_accept
+      SELECT offer_description, max_bookings_per_day, max_bookings_per_week, max_people, virality_tiers, photos, is_published, directives, auto_accept, first_published_at
       FROM restaurants WHERE id = ${session.restaurantId}
     `
 
+    const r = restaurant[0]
+    const isFirstTime = slots.length === 0 && !r?.first_published_at
+
     return NextResponse.json({
       slots,
-      offerDescription: restaurant[0]?.offer_description || '',
-      maxPerDay: restaurant[0]?.max_bookings_per_day || 1,
-      maxPeople: restaurant[0]?.max_people || 2,
-      viralityTiers: restaurant[0]?.virality_tiers || [],
-      isPublished: restaurant[0]?.is_published || false,
-      photos: restaurant[0]?.photos || [],
-      directives: restaurant[0]?.directives || '',
-      maxPerWeek: restaurant[0]?.max_bookings_per_week ?? null,
-      autoAccept: restaurant[0]?.auto_accept !== false,
+      offerDescription: r?.offer_description || '',
+      maxPerDay: r?.max_bookings_per_day || 1,
+      maxPeople: r?.max_people || 2,
+      viralityTiers: r?.virality_tiers || [],
+      isPublished: r?.is_published || false,
+      photos: r?.photos || [],
+      directives: r?.directives || '',
+      maxPerWeek: r?.max_bookings_per_week ?? null,
+      autoAccept: r?.auto_accept !== false,
+      firstPublishedAt: r?.first_published_at || null,
+      isFirstTime,
     })
   } catch (err) {
     console.error('Fetch collabs error:', err)
@@ -56,26 +62,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    // Add recurring slot — auto-publish the restaurant
+    // Add recurring slot
     if (body.action === 'add_recurring') {
       await sql`
         INSERT INTO time_slots (restaurant_id, day_of_week, start_time, end_time, max_bookings, is_active)
         VALUES (${session.restaurantId}, ${body.dayOfWeek}, ${body.startTime}, ${body.endTime}, ${body.maxBookings || 1}, true)
       `
-      await sql`UPDATE restaurants SET is_published = true WHERE id = ${session.restaurantId}`
-      track({ event: 'offre_publiee', userId: session.restaurantId, userType: 'restaurant' })
       return NextResponse.json({ success: true })
     }
 
-    // Add specific date slot — auto-publish
+    // Add specific date slot
     if (body.action === 'add_date') {
       const date = new Date(body.date)
       await sql`
         INSERT INTO time_slots (restaurant_id, day_of_week, start_time, end_time, max_bookings, is_active, specific_date)
         VALUES (${session.restaurantId}, ${date.getDay()}, ${body.startTime}, ${body.endTime}, ${body.maxBookings || 1}, true, ${body.date})
       `
-      await sql`UPDATE restaurants SET is_published = true WHERE id = ${session.restaurantId}`
-      track({ event: 'offre_publiee', userId: session.restaurantId, userType: 'restaurant' })
       return NextResponse.json({ success: true })
     }
 
@@ -99,12 +101,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    // Toggle publish
+    // Toggle publish (also sets first_published_at on first publish)
     if (body.action === 'toggle_publish') {
-      await sql`UPDATE restaurants SET is_published = ${body.isPublished} WHERE id = ${session.restaurantId}`
       if (body.isPublished) {
+        await sql`
+          UPDATE restaurants
+          SET is_published = true,
+              first_published_at = COALESCE(first_published_at, NOW())
+          WHERE id = ${session.restaurantId}
+        `
         track({ event: 'offre_publiee', userId: session.restaurantId, userType: 'restaurant' })
+        // Fire-and-forget Moteur B push to matching creators
+        triggerMoteurB(session.restaurantId).catch(() => {})
+      } else {
+        await sql`UPDATE restaurants SET is_published = false WHERE id = ${session.restaurantId}`
       }
+      return NextResponse.json({ success: true })
+    }
+
+    // Seed defaults for first-time restaurants (onboarding)
+    if (body.action === 'seed_defaults') {
+      // Insert 14 default slots: 7 days × 2 ranges (12:00-15:00 + 19:00-21:00)
+      for (let day = 0; day < 7; day++) {
+        await sql`
+          INSERT INTO time_slots (restaurant_id, day_of_week, start_time, end_time, max_bookings, is_active)
+          VALUES (${session.restaurantId}, ${day}, '12:00', '15:00', 1, true)
+        `
+        await sql`
+          INSERT INTO time_slots (restaurant_id, day_of_week, start_time, end_time, max_bookings, is_active)
+          VALUES (${session.restaurantId}, ${day}, '19:00', '21:00', 1, true)
+        `
+      }
+      await sql`
+        UPDATE restaurants
+        SET max_people = 3, max_bookings_per_week = 5, offer_description = 'Repas de 1 à 3 personnes'
+        WHERE id = ${session.restaurantId}
+      `
+      return NextResponse.json({ success: true })
+    }
+
+    // Update an existing slot inline
+    if (body.action === 'update_slot') {
+      await sql`
+        UPDATE time_slots
+        SET start_time = ${body.startTime}, end_time = ${body.endTime}, max_bookings = ${body.maxBookings || 1}
+        WHERE id = ${body.slotId} AND restaurant_id = ${session.restaurantId}
+      `
       return NextResponse.json({ success: true })
     }
 

@@ -472,19 +472,107 @@ Pour que les créateurs te trouvent, publie ton offre maintenant. 5 minutes :
   await sendToUser(business.email, 'Bienvenue — tes 3 collabs gratuites t\'attendent', html)
 }
 
-// R2 — J+2 if no offer published
-export async function sendRestoDripR2(resto: { ownerName: string; email: string }) {
+// RH1 — H+1 after account creation, not published
+export async function sendRestoDripH1(resto: { ownerName: string; email: string }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
   const html = buildDripEmail(
     resto.ownerName,
-    'Ton compte est ouvert depuis 2 jours. Tant que ton offre n\'est pas publiée, les créateurs sur 2960 ne peuvent pas te trouver. Ça prend 5 minutes.',
+    'Ton espace est prêt. Ton offre est pré-remplie — vérifie les créneaux et publie. 3 minutes.',
     null,
     'Publier mon offre', `${appUrl}/restaurant/dashboard`,
   )
-  await sendToUser(resto.email, 'Ton resto n\'est pas encore visible', html)
+  await sendToUser(resto.email, 'Ton espace est prêt — publie en 3 min', html)
 }
 
-// R3 — J+7 if no offer published
+// RJ1 — J+1, not published
+export async function sendRestoDripJ1(resto: { ownerName: string; email: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    resto.ownerName,
+    'Ton offre est pré-remplie et attend d\'être publiée. Un clic et les créateurs peuvent te trouver.',
+    null,
+    'Publier mon offre', `${appUrl}/restaurant/dashboard`,
+  )
+  await sendToUser(resto.email, 'Un dernier pas pour recevoir des créateurs', html)
+}
+
+// RJ3 — J+3, not published
+export async function sendRestoDripJ3(resto: { ownerName: string; email: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    resto.ownerName,
+    'Ça fait 3 jours que ton compte est ouvert. Les créateurs sur 2960 cherchent des restos comme le tien — mais tant que ton offre n\'est pas publiée, ils ne te voient pas.',
+    null,
+    'Publier maintenant', `${appUrl}/restaurant/dashboard`,
+  )
+  await sendToUser(resto.email, 'Les créateurs ne te voient pas encore', html)
+}
+
+// RJ6 — J+6, not published
+export async function sendRestoDripJ6(resto: { ownerName: string; email: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    resto.ownerName,
+    `Tes 3 collabs offertes expirent dans 24 jours. Publie ton offre maintenant pour en profiter — 1 clic suffit.`,
+    'Si quelque chose bloque, réponds à cet email.',
+    'Activer mes collabs', `${appUrl}/restaurant/dashboard`,
+  )
+  await sendToUser(resto.email, 'Dernière chance : publie ton offre', html)
+}
+
+// RP2 — J+2 after publish, 0 bookings
+export async function sendRestoPublishedNoBookingsJ2(resto: { ownerName: string; email: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    resto.ownerName,
+    'Ton offre est en ligne depuis 2 jours mais aucun créateur n\'a encore réservé. Élargis tes créneaux pour augmenter tes chances — les soirées et week-ends fonctionnent le mieux.',
+    null,
+    'Modifier mes créneaux', `${appUrl}/restaurant/dashboard`,
+  )
+  await sendToUser(resto.email, 'Élargis tes créneaux pour plus de demande', html)
+}
+
+// RP5 — J+5 after publish, 0 bookings
+export async function sendRestoPublishedNoBookingsJ5(resto: { ownerName: string; email: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    resto.ownerName,
+    'Toujours 0 réservation. Quelques idées : ajoute des photos (ça multiplie les réservations par 3), élargis tes créneaux, ou active une prime de viralité pour attirer les meilleurs créateurs.',
+    'Si quelque chose bloque, réponds à cet email.',
+    'Optimiser mon offre', `${appUrl}/restaurant/dashboard`,
+  )
+  await sendToUser(resto.email, '0 réservation — 3 leviers pour débloquer', html)
+}
+
+// Moteur B push — suggest restaurant to creator
+export async function sendMoteurBPush(creator: { firstName: string; email: string; restoName: string; maxGuests: number; netPrime: number }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const primeText = creator.netPrime > 0 ? `Et si ta vidéo perce, tu peux gagner jusqu'à ${creator.netPrime}€ pour une seule vidéo.\n\n` : ''
+  const html = buildDripEmail(
+    creator.firstName,
+    `${creator.restoName} aimerait te faire découvrir sa cuisine.\n\nTu viens filmer ta vidéo, et tu peux emmener jusqu'à ${creator.maxGuests} pote${creator.maxGuests > 1 ? 's' : ''} avec toi.\n\n${primeText}Ta place t'attend.`,
+    null,
+    'Je réserve en 1 clic', `${appUrl}/creator/dashboard`,
+  )
+  await sendToUser(creator.email, `${creator.restoName} aimerait te recevoir cette semaine`, html)
+}
+
+// Nudge: manual restaurant with pending booking > 24h
+export async function sendNudgeAutoAccept(resto: { ownerName: string; email: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    resto.ownerName,
+    'Un créateur attend ta réponse depuis plus de 24h. Active l\'acceptation automatique — les critères de la plateforme filtrent déjà les créateurs pour toi. Tu gardes le contrôle et tu peux revenir au mode manuel en 1 clic.',
+    null,
+    'Activer l\'auto-accept', `${appUrl}/restaurant/dashboard`,
+  )
+  await sendToUser(resto.email, 'Une réservation attend ta réponse', html)
+}
+
+// DEPRECATED — kept for reference, replaced by RH1/RJ1/RJ3/RJ6
+export async function sendRestoDripR2(resto: { ownerName: string; email: string }) {
+  await sendRestoDripJ1(resto) // fallback
+}
 export async function sendRestoDripR3(resto: { ownerName: string; email: string }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
   const html = buildDripEmail(

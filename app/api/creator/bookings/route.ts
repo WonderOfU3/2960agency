@@ -154,7 +154,8 @@ export async function POST(req: NextRequest) {
       }, { status: 403 })
     }
 
-    const { restaurantId, timeSlotId, bookingDate, slotStartTime, slotEndTime, numPeople } = await req.json()
+    const { restaurantId, timeSlotId, bookingDate, slotStartTime, slotEndTime, numPeople, source } = await req.json()
+    const bookingSource = ['organique', 'moteur_b', 'email_Cx', 'parrainage', 'manual'].includes(source) ? source : 'organique'
 
     // Validate booking date is max 30 days in advance
     const [y, m, d] = bookingDate.split('-').map(Number)
@@ -264,10 +265,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Snapshot virality tiers at booking time (lock rule)
+    const bookedTiers = resto.virality_tiers && Array.isArray(resto.virality_tiers) && resto.virality_tiers.length > 0
+      ? JSON.stringify(resto.virality_tiers) : null
+
     const bookingResult = await sql`
-      INSERT INTO bookings (creator_id, restaurant_id, time_slot_id, booking_date, status, slot_start_time, slot_end_time, num_people)
+      INSERT INTO bookings (creator_id, restaurant_id, time_slot_id, booking_date, status, slot_start_time, slot_end_time, num_people, source, booked_virality_tiers)
       VALUES (${session.id}, ${restaurantId}, ${timeSlotId}, ${bookingDate}, ${bookingStatus},
-              ${slotStartTime || null}, ${slotEndTime || null}, ${numPeople || 1})
+              ${slotStartTime || null}, ${slotEndTime || null}, ${numPeople || 1}, ${bookingSource}, ${bookedTiers}::jsonb)
       RETURNING id
     `
     track({ event: 'reservation_lancee', userId: session.id, userType: 'creator', metadata: { restaurantId, bookingId: bookingResult[0].id } })
@@ -278,7 +283,7 @@ export async function POST(req: NextRequest) {
       // Set video deadline
       const vDeadline = calculateVideoDeadline(date)
       await sql`UPDATE bookings SET video_deadline = ${vDeadline.toISOString()} WHERE id = ${bookingResult[0].id}`
-      track({ event: 'reservation_confirmee', userId: session.id, userType: 'creator', metadata: { restaurantId, bookingId: bookingResult[0].id, source: 'organique' } })
+      track({ event: 'reservation_confirmee', userId: session.id, userType: 'creator', metadata: { restaurantId, bookingId: bookingResult[0].id, source: bookingSource } })
     }
 
     // If auto-confirmed as a trial collab, increment trial_collabs_used

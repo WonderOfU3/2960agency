@@ -3,6 +3,7 @@ import { z } from 'zod'
 import sql from '@/lib/db'
 import { sendBusinessNotification } from '@/lib/email'
 import { hashPassword } from '@/lib/auth'
+import { track } from '@/lib/track'
 
 const schema = z.object({
   firstName:  z.string().default(''),
@@ -12,6 +13,7 @@ const schema = z.object({
   password:   z.string().min(8),
   bizName:    z.string().min(1),
   address:    z.string().default(''),
+  referralCode: z.string().optional(),
   locale:     z.string().default('fr'),
 })
 
@@ -38,8 +40,15 @@ export async function POST(req: NextRequest) {
       ? `${d.firstName.trim()} ${d.lastName.trim()}`.trim()
       : d.bizName.trim()
 
+    // Validate referral code if provided
+    let validatedReferralCode: string | null = null
+    if (d.referralCode) {
+      const codeCheck = await sql`SELECT ambassador_code FROM creators WHERE ambassador_code = ${d.referralCode.trim().toUpperCase()}`
+      if (codeCheck.length > 0) validatedReferralCode = codeCheck[0].ambassador_code
+    }
+
     const row = {
-      referred_by_ambassador_code: null,
+      referred_by_ambassador_code: validatedReferralCode,
       business_name:           d.bizName.trim(),
       owner_name:              ownerName,
       email:                   d.email.trim(),
@@ -108,6 +117,13 @@ export async function POST(req: NextRequest) {
     `
 
     await sendBusinessNotification(row)
+
+    if (validatedReferralCode) {
+      const referrer = await sql`SELECT id FROM creators WHERE ambassador_code = ${validatedReferralCode}`
+      if (referrer.length > 0) {
+        track({ event: 'resto_ramene_via_code', userId: referrer[0].id, userType: 'creator', metadata: { restaurantEmail: d.email, code: validatedReferralCode } })
+      }
+    }
 
     return NextResponse.json({ success: true })
   } catch (err) {

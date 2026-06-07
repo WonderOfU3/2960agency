@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { fireCompleteRegistration } from '@/lib/pixels'
 
 const CTA_LABEL = 'Activer mes 3 premières collabs'
 const CTA_SUB = '3 collabs sans abonnement pour commencer. Aucune CB requise.'
@@ -45,10 +46,18 @@ function StickyMobileCta() {
 
 export default function InscrisRestoPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [form, setForm] = useState({ email: '', bizName: '', password: '' })
+  const [referralCode, setReferralCode] = useState('')
+  const [showReferral, setShowReferral] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [globalError, setGlobalError] = useState('')
+
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref) { setReferralCode(ref); setShowReferral(true) }
+  }, [searchParams])
 
   const set = (k: string, v: string) => {
     setForm(p => ({ ...p, [k]: v }))
@@ -76,6 +85,7 @@ export default function InscrisRestoPage() {
           email: form.email.trim(),
           bizName: form.bizName.trim(),
           password: form.password,
+          referralCode: referralCode.trim() || undefined,
           locale: 'fr',
         }),
       })
@@ -88,10 +98,7 @@ export default function InscrisRestoPage() {
         }
         throw new Error('failed')
       }
-      if (typeof window !== 'undefined') {
-        if ((window as any).ttq) (window as any).ttq.track('CompleteRegistration')
-        if ((window as any).fbq) (window as any).fbq('track', 'CompleteRegistration')
-      }
+      fireCompleteRegistration()
       router.push('/business/success')
     } catch {
       setGlobalError('Une erreur est survenue. Réessayez.')
@@ -288,6 +295,22 @@ export default function InscrisRestoPage() {
               <input type="password" value={form.password} onChange={e => set('password', e.target.value)} placeholder="Min. 8 caractères"
                 autoComplete="new-password" className={inputCls} style={inputStyle} />
               {errors.password && <p className="font-dm text-[#E8471A]/70 text-[11px] mt-1">{errors.password}</p>}
+            </div>
+            {/* Referral code */}
+            <div>
+              {!showReferral ? (
+                <button type="button" onClick={() => setShowReferral(true)}
+                  className="font-dm text-white/30 text-[12px] underline cursor-pointer bg-transparent border-none p-0">
+                  J&apos;ai un code de parrainage
+                </button>
+              ) : (
+                <div>
+                  <label className="font-dm text-white/50 text-[11px] font-semibold uppercase tracking-[0.06em] block mb-1.5">Code de parrainage <span className="text-white/20 normal-case">(optionnel)</span></label>
+                  <input value={referralCode} onChange={e => setReferralCode(e.target.value.toUpperCase())} placeholder="Ex : ABC123"
+                    className={inputCls} style={inputStyle} />
+                  <p className="font-dm text-white/20 text-[10px] mt-1">Votre inscription sera associée au créateur référent.</p>
+                </div>
+              )}
             </div>
           </div>
 

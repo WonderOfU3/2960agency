@@ -13,6 +13,8 @@ export type TrackEvent =
   | 'reservation_lancee'
   | 'reservation_confirmee'
   | 'lien_video_poste'
+  | 'code_partage'
+  | 'resto_ramene_via_code'
 
 interface TrackPayload {
   event: TrackEvent

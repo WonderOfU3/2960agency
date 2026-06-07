@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLanguage } from '@/context/LanguageContext'
@@ -10,6 +10,8 @@ import NotificationBell from '@/components/NotificationBell'
 import { useTheme } from '@/context/ThemeContext'
 import { useToast } from '@/components/ui/Toast'
 import RatingWidget from '@/components/RatingWidget'
+import OnboardingTour from '@/components/restaurant/OnboardingTour'
+import { fireOffrePubliee } from '@/lib/pixels'
 
 const T = {
   fr: {
@@ -235,6 +237,13 @@ export default function RestaurantDashboard() {
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewComment, setReviewComment] = useState('')
   const [reviewedBookings, setReviewedBookings] = useState<Set<number>>(new Set())
+  const [isFirstTime, setIsFirstTime] = useState(false)
+  const [firstPublishedAt, setFirstPublishedAt] = useState<string | null>(null)
+  const [showTour, setShowTour] = useState(false)
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false)
+  const [autoSaveIndicator, setAutoSaveIndicator] = useState(false)
+  const [showHelpMenu, setShowHelpMenu] = useState(false)
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
@@ -268,6 +277,12 @@ export default function RestaurantDashboard() {
       setDirectives(colData.directives || '')
       setMaxPerWeek(colData.maxPerWeek ?? null)
       setAutoAccept(colData.autoAccept !== false)
+      setIsFirstTime(colData.isFirstTime || false)
+      setFirstPublishedAt(colData.firstPublishedAt || null)
+      if (colData.isFirstTime) {
+        setMaxPeople(3)
+        setMaxPerWeek(5)
+      }
 
       // Get auto_accept from cookie session
       try {
@@ -459,6 +474,41 @@ export default function RestaurantDashboard() {
     const newVal = !isPublished
     setIsPublished(newVal)
     await fetch('/api/restaurant/collabs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'toggle_publish', isPublished: newVal }) })
+    if (newVal) fireOffrePubliee()
+  }
+
+  const handleFirstPublish = async () => {
+    if (isFirstTime) {
+      await fetch('/api/restaurant/collabs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'seed_defaults' }) })
+    }
+    setIsPublished(true)
+    setFirstPublishedAt(new Date().toISOString())
+    setIsFirstTime(false)
+    await fetch('/api/restaurant/collabs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'toggle_publish', isPublished: true }) })
+    fireOffrePubliee()
+    setShowPublishConfirm(true)
+    await fetchData()
+  }
+
+  const triggerAutoSave = useCallback(() => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(async () => {
+      await handleSaveOffer()
+      setAutoSaveIndicator(true)
+      setTimeout(() => setAutoSaveIndicator(false), 2000)
+    }, 800)
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleUpdateSlot = async (slotId: number, startTime: string, endTime: string, maxBookings: number) => {
+    await fetch('/api/restaurant/collabs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update_slot', slotId, startTime, endTime, maxBookings }) })
+    setAutoSaveIndicator(true)
+    setTimeout(() => setAutoSaveIndicator(false), 2000)
+    await fetchData()
+  }
+
+  const handleCompleteTour = async () => {
+    setShowTour(false)
+    await fetch('/api/restaurant/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tourSeen: true }) })
   }
 
   const handleCheckout = async (plan: string) => {
@@ -526,122 +576,119 @@ export default function RestaurantDashboard() {
         {/* === OFFERS TAB === */}
         {tab === 'offers' && (
           <div style={{ maxWidth: 720 }}>
-            {/* Publish toggle */}
-            <div className="rounded-2xl p-5 mb-4" style={{
-              background: isPublished ? 'rgba(74,222,128,0.04)' : c.cardBg,
-              border: `1px solid ${isPublished ? 'rgba(74,222,128,0.15)' : c.divider}`,
-            }}>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <div onClick={handleTogglePublish}
-                  className="w-12 h-6 rounded-full relative transition-all flex-shrink-0" style={{
-                    background: isPublished ? '#4ade80' : 'var(--input-bg, rgba(255,255,255,0.1))',
-                    border: isPublished ? 'none' : '1px solid var(--input-border, rgba(255,255,255,0.15))',
-                  }}>
-                  <div className="w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all" style={{
-                    left: isPublished ? 26 : 2,
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                  }} />
-                </div>
-                <div>
-                  <span className="font-dm text-white font-semibold text-[14px] block">
-                    {isPublished
-                      ? (locale === 'fr' ? 'Offre visible par les créateurs' : 'Offer visible to creators')
-                      : (locale === 'fr' ? 'Offre masquée (brouillon)' : 'Offer hidden (draft)')}
-                  </span>
-                  <span className="font-dm text-white/30 text-[12px]">
-                    {isPublished
-                      ? (locale === 'fr' ? 'Les créateurs peuvent voir et réserver vos créneaux' : 'Creators can see and book your slots')
-                      : (locale === 'fr' ? 'Activez pour rendre votre offre visible' : 'Enable to make your offer visible')}
-                  </span>
-                </div>
-              </label>
-            </div>
 
-            {/* Structured offer */}
-            <div className="rounded-2xl p-5 mb-4" style={{ background: c.cardBg, border: `1px solid ${c.divider}` }}>
-              <label className="font-dm text-white/50 text-[11px] uppercase tracking-[0.06em] block mb-3">{t.offerLabel}</label>
+            {/* Publish confirmation overlay */}
+            {showPublishConfirm && (
+              <div className="rounded-2xl p-6 mb-4 text-center" style={{ background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)' }}>
+                <p className="font-dm text-[#4ade80] text-[20px] font-bold mb-2">{locale === 'fr' ? 'Vous êtes en ligne !' : 'You\'re live!'}</p>
+                <p className="font-dm text-white/50 text-[14px] mb-3">{locale === 'fr' ? 'Vos 3 collabs offertes sont activées. On prévient les créateurs proches de chez vous.' : 'Your 3 free collabs are activated. We\'re notifying nearby creators.'}</p>
+                <button onClick={() => setShowPublishConfirm(false)} className="font-dm text-[13px] font-semibold px-5 py-2 rounded-lg cursor-pointer" style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80', border: 'none' }}>OK</button>
+              </div>
+            )}
 
-              {/* Max people selector */}
+            {/* Visibility toggle — only shown AFTER first publish */}
+            {firstPublishedAt && !showPublishConfirm && (
+              <div className="rounded-2xl p-5 mb-4" style={{
+                background: isPublished ? 'rgba(74,222,128,0.04)' : c.cardBg,
+                border: `1px solid ${isPublished ? 'rgba(74,222,128,0.15)' : c.divider}`,
+              }}>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div onClick={handleTogglePublish}
+                    className="w-12 h-6 rounded-full relative transition-all flex-shrink-0" style={{
+                      background: isPublished ? '#4ade80' : 'var(--input-bg, rgba(255,255,255,0.1))',
+                      border: isPublished ? 'none' : '1px solid var(--input-border, rgba(255,255,255,0.15))',
+                    }}>
+                    <div className="w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all" style={{ left: isPublished ? 26 : 2, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                  </div>
+                  <div>
+                    <span className="font-dm font-semibold text-[14px] block" style={{ color: c.text }}>
+                      {isPublished
+                        ? (locale === 'fr' ? 'Offre en ligne' : 'Offer online')
+                        : (locale === 'fr' ? 'Offre en pause — invisible, aucune nouvelle réservation' : 'Offer paused — invisible, no new bookings')}
+                    </span>
+                  </div>
+                </label>
+              </div>
+            )}
+
+            {/* Auto-save indicator */}
+            {autoSaveIndicator && (
+              <div className="flex items-center gap-2 mb-3 animate-fade-in">
+                <span className="font-dm text-[#4ade80] text-[12px] font-semibold">{locale === 'fr' ? 'Enregistré ✓' : 'Saved ✓'}</span>
+              </div>
+            )}
+
+            {/* Photo banner for new restaurants */}
+            {myPhotos.length === 0 && (
+              <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(232,71,26,0.06)', border: '1px solid rgba(232,71,26,0.12)' }}>
+                <p className="font-dm text-[#E8471A]/80 text-[12px]">
+                  {locale === 'fr' ? 'Ajoutez des photos — les offres avec photos attirent plus de créateurs.' : 'Add photos — offers with photos attract more creators.'}
+                </p>
+              </div>
+            )}
+
+            {/* Structured offer — max people */}
+            <div data-tour="people" className="rounded-2xl p-5 mb-4" style={{ background: c.cardBg, border: `1px solid ${c.divider}` }}>
+              <div className="flex items-center gap-2 mb-3">
+                <label className="font-dm text-white/50 text-[11px] uppercase tracking-[0.06em]">{t.offerLabel}</label>
+                <span className="font-dm text-white/20 text-[10px] cursor-help" title={locale === 'fr' ? 'Le créateur peut venir avec des accompagnants jusqu\'à ce nombre' : 'The creator can bring guests up to this number'}>ⓘ</span>
+              </div>
+
               <div className="mb-4">
                 <p className="font-dm text-white/60 text-[12px] mb-2">{locale === 'fr' ? 'Repas de 1 à combien de personnes ?' : 'Meal for 1 to how many people?'}</p>
                 <div className="flex items-center gap-3">
                   <span className="font-dm text-white/40 text-[13px]">1 →</span>
-                  <button onClick={() => setMaxPeople(p => Math.max(1, p - 1))}
+                  <button onClick={() => { setMaxPeople(p => Math.max(1, p - 1)); triggerAutoSave() }}
                     className="font-dm w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer text-[16px]"
                     style={{ background: c.inputBg, border: `1px solid ${c.inputBorder}`, color: c.text }}>−</button>
                   <span className="font-dm text-[18px] font-bold" style={{ color: '#E8471A', minWidth: 24, textAlign: 'center' }}>{maxPeople}</span>
-                  <button onClick={() => setMaxPeople(p => Math.min(20, p + 1))}
+                  <button onClick={() => { setMaxPeople(p => Math.min(20, p + 1)); triggerAutoSave() }}
                     className="font-dm w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer text-[16px]"
                     style={{ background: c.inputBg, border: `1px solid ${c.inputBorder}`, color: c.text }}>+</button>
                   <span className="font-dm text-white/40 text-[12px]">{locale === 'fr' ? 'personnes' : 'people'}</span>
                 </div>
-                <p className="font-dm text-white/30 text-[11px] mt-1">
-                  {locale === 'fr'
-                    ? `→ Les créateurs verront : "Repas de 1 à ${maxPeople} personne${maxPeople > 1 ? 's' : ''}"`
-                    : `→ Creators will see: "Meal for 1 to ${maxPeople} ${maxPeople > 1 ? 'people' : 'person'}"`}
-                </p>
               </div>
 
               {/* Virality bonus tiers */}
               <div className="mb-4">
-                <p className="font-dm text-white/60 text-[12px] mb-2">{locale === 'fr' ? 'Prime de viralité (optionnel)' : 'Virality bonus (optional)'}</p>
-                <p className="font-dm text-white/25 text-[11px] mb-3">
-                  {locale === 'fr'
-                    ? 'Offrez un bonus si la vidéo du créateur dépasse un certain nombre de vues'
-                    : 'Offer a bonus if the creator\'s video surpasses a certain number of views'}
-                </p>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="font-dm text-white/60 text-[12px]">{locale === 'fr' ? 'Prime de viralité (optionnel)' : 'Virality bonus (optional)'}</p>
+                  <span className="font-dm text-white/20 text-[10px] cursor-help" title={locale === 'fr' ? 'Vous ne payez que si la vidéo dépasse le seuil de vues que vous fixez' : 'You only pay if the video exceeds the views threshold you set'}>ⓘ</span>
+                </div>
+                {viralityTiers.length === 0 && (
+                  <p className="font-dm text-white/25 text-[11px] mb-3">
+                    {locale === 'fr'
+                      ? 'Ajoutez une prime pour attirer les meilleurs créateurs — vous fixez le seuil ET le montant, vous ne payez QUE si une vidéo les dépasse.'
+                      : 'Add a bonus to attract the best creators — you set the threshold AND the amount, you only pay if a video exceeds them.'}
+                  </p>
+                )}
 
                 {viralityTiers.map((tier, i) => (
                   <div key={i} className="flex items-center gap-2 mb-2">
                     <span className="font-dm text-white/40 text-[11px] flex-shrink-0">{locale === 'fr' ? 'Si >' : 'If >'}</span>
                     <input type="number" value={tier.views / 1000} onChange={e => {
-                      const v = [...viralityTiers]; v[i] = { ...v[i], views: Math.max(1, parseInt(e.target.value) || 0) * 1000 }; setViralityTiers(v)
+                      const v = [...viralityTiers]; v[i] = { ...v[i], views: Math.max(1, parseInt(e.target.value) || 0) * 1000 }; setViralityTiers(v); triggerAutoSave()
                     }}
                       className="font-dm w-20 rounded-lg text-[13px] text-white/90 text-center outline-none"
                       style={{ height: 36, padding: '0 8px', background: c.inputBg, border: `1px solid ${c.inputBorder}` }} />
                     <span className="font-dm text-white/40 text-[11px] flex-shrink-0">k {locale === 'fr' ? 'vues →' : 'views →'}</span>
                     <input type="number" value={tier.bonus} onChange={e => {
-                      const v = [...viralityTiers]; v[i] = { ...v[i], bonus: Math.max(1, parseInt(e.target.value) || 0) }; setViralityTiers(v)
+                      const v = [...viralityTiers]; v[i] = { ...v[i], bonus: Math.max(1, parseInt(e.target.value) || 0) }; setViralityTiers(v); triggerAutoSave()
                     }}
                       className="font-dm w-20 rounded-lg text-[13px] text-white/90 text-center outline-none"
                       style={{ height: 36, padding: '0 8px', background: c.inputBg, border: `1px solid ${c.inputBorder}` }} />
                     <span className="font-dm text-white/40 text-[11px] flex-shrink-0">€</span>
-                    <button onClick={() => setViralityTiers(v => v.filter((_, j) => j !== i))}
+                    <button onClick={() => { setViralityTiers(v => v.filter((_, j) => j !== i)); triggerAutoSave() }}
                       className="font-dm w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer text-[14px]"
                       style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: 'none' }}>×</button>
                   </div>
                 ))}
 
-                <div className="flex items-center gap-3 mt-2">
-                  <button onClick={() => setViralityTiers(v => [...v, { views: (v.length > 0 ? v[v.length - 1].views * 2 : 50000), bonus: (v.length > 0 ? Math.round(v[v.length - 1].bonus * 1.5) : 100) }])}
-                    className="font-dm text-[11px] font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition-all hover:brightness-110"
-                    style={{ background: 'rgba(232,71,26,0.12)', color: '#E8471A', border: '1px solid rgba(232,71,26,0.2)' }}>
-                    + {locale === 'fr' ? 'Ajouter un palier' : 'Add a tier'}
-                  </button>
-                  <div className="relative">
-                    <button onClick={() => setShowViralityRef(v => !v)}
-                      className="font-dm text-[10px] px-2 py-1 rounded-md cursor-pointer transition-all"
-                      style={{ background: 'none', border: `1px solid ${c.divider}`, color: c.textMuted }}>
-                      ℹ {t.viralityRef}
-                    </button>
-                    {showViralityRef && (
-                      <div className="absolute left-0 top-full mt-1 z-50 rounded-xl p-4 shadow-lg" style={{ background: c.isLight ? '#fff' : '#1e1b17', border: `1px solid ${c.divider}`, minWidth: 240 }}>
-                        <p className="font-dm text-[11px] font-semibold mb-2" style={{ color: c.text }}>{t.viralityRef}</p>
-                        {[
-                          { range: '50k – 100k', amount: '200€ TTC' },
-                          { range: '100k – 350k', amount: '350€ TTC' },
-                          { range: '350k – 750k', amount: '600€ TTC' },
-                          { range: '750k+', amount: '1 000€ TTC' },
-                        ].map((ref, i) => (
-                          <div key={i} className="flex justify-between font-dm text-[11px] py-1" style={{ color: c.textMuted, borderBottom: i < 3 ? `1px solid ${c.divider}` : 'none' }}>
-                            <span>{ref.range} {locale === 'fr' ? 'vues' : 'views'}</span>
-                            <span className="font-semibold" style={{ color: '#E8471A' }}>{ref.amount}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <button onClick={() => { setViralityTiers(v => [...v, { views: (v.length > 0 ? v[v.length - 1].views * 2 : 50000), bonus: (v.length > 0 ? Math.round(v[v.length - 1].bonus * 1.5) : 100) }]) }}
+                  className="font-dm text-[11px] font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition-all hover:brightness-110 mt-2"
+                  style={{ background: 'rgba(232,71,26,0.12)', color: '#E8471A', border: '1px solid rgba(232,71,26,0.2)' }}>
+                  + {locale === 'fr' ? 'Ajouter un palier' : 'Add a tier'}
+                </button>
               </div>
 
               {/* Directives for creators — Pro & Assist only */}
@@ -650,7 +697,7 @@ export default function RestaurantDashboard() {
                 {subInfo && (subInfo.plan === 'pro' || subInfo.plan === 'pro_assist') ? (
                   <>
                     <p className="font-dm text-white/25 text-[11px] mb-2">{t.directivesHint}</p>
-                    <textarea value={directives} onChange={e => setDirectives(e.target.value)}
+                    <textarea value={directives} onChange={e => { setDirectives(e.target.value); triggerAutoSave() }}
                       placeholder={t.directivesPh} rows={3}
                       className="font-dm w-full rounded-lg text-[13px] text-white/90 placeholder:text-white/20 outline-none resize-none"
                       style={{ padding: '10px 12px', background: c.inputBg, border: `1px solid ${c.inputBorder}` }} />
@@ -661,58 +708,32 @@ export default function RestaurantDashboard() {
                   </p>
                 )}
               </div>
-
             </div>
 
-            {/* Photos */}
-            <div className="rounded-2xl p-5 mb-4" style={{ background: c.cardBg, border: `1px solid ${c.divider}` }}>
-              <label className="font-dm text-white/50 text-[11px] uppercase tracking-[0.06em] block mb-3">{t.photos}</label>
-              {myPhotos.length > 0 ? (
-                <div className="grid gap-2 mb-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))' }}>
-                  {myPhotos.map((url, i) => (
-                    <div key={i} className="relative rounded-lg overflow-hidden" style={{ aspectRatio: '1', width: '100%' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt="" className="w-full h-full object-cover" />
-                      <button onClick={() => handleRemovePhoto(url)}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-[12px] cursor-pointer"
-                        style={{ background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none' }}>&times;</button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="font-dm text-white/20 text-[12px] mb-3">{t.noPhotos}</p>
-              )}
-              {/* File upload */}
-              <div className="mb-3">
-                <label className="font-dm text-[11px] font-semibold px-4 py-2 rounded-lg cursor-pointer transition-all hover:brightness-110 inline-flex items-center gap-2"
-                  style={{ background: '#E8471A', color: '#fff' }}>
-                  {uploading ? (locale === 'fr' ? `Upload ${uploadProgress}...` : `Uploading ${uploadProgress}...`) : (locale === 'fr' ? 'Uploader des photos' : 'Upload photos')}
-                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" multiple
-                    disabled={uploading}
-                    onChange={e => { const files = e.target.files; if (files && files.length > 0) handleUploadPhotos(files); e.target.value = '' }} />
-                </label>
-              </div>
-              {/* URL fallback */}
-              <div className="flex gap-2">
-                <input value={newPhotoUrl} onChange={e => setNewPhotoUrl(e.target.value)}
-                  placeholder={t.phPhoto}
-                  onKeyDown={e => e.key === 'Enter' && handleAddPhoto()}
-                  className="font-dm flex-1 rounded-lg text-[12px] text-white/90 placeholder:text-white/20 outline-none"
-                  style={{ height: 38, padding: '0 12px', background: c.inputBg, border: `1px solid ${c.inputBorder}` }} />
-                <button onClick={handleAddPhoto}
-                  className="font-dm text-[11px] font-semibold px-3 rounded-lg cursor-pointer transition-all hover:brightness-110"
-                  style={{ height: 38, background: c.inputBg, color: c.textMuted, border: `1px solid ${c.inputBorder}` }}>+</button>
-              </div>
-            </div>
-
-            {/* Time slots */}
-            <div className="rounded-2xl p-5" style={{ background: c.cardBg, border: `1px solid ${c.divider}` }}>
+            {/* Time slots + auto-accept + weekly limit */}
+            <div data-tour="slots" className="rounded-2xl p-5 mb-4" style={{ background: c.cardBg, border: `1px solid ${c.divider}` }}>
               <p className="font-dm text-white/50 text-[11px] uppercase tracking-[0.06em] mb-3">{t.manageSlots}</p>
 
-              {/* Existing slots */}
-              {mySlots.length === 0 ? (
-                <p className="font-dm text-white/20 text-[13px] mb-4">{t.noSlots}</p>
-              ) : (
+              {/* First-time preview of default slots */}
+              {isFirstTime && mySlots.length === 0 && (
+                <div className="mb-4">
+                  <p className="font-dm text-white/30 text-[10px] uppercase tracking-wider mb-1.5">{locale === 'fr' ? 'Créneaux par défaut (modifiables)' : 'Default slots (editable)'}</p>
+                  <div className="space-y-1.5">
+                    {['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'].map((d, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="font-dm text-white/40 text-[12px] w-8">{d}</span>
+                        <span className="font-dm text-white/50 text-[12px]">12:00-15:00</span>
+                        <span className="font-dm text-white/20 text-[12px]">+</span>
+                        <span className="font-dm text-white/50 text-[12px]">19:00-21:00</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="font-dm text-white/25 text-[11px] mt-2">{locale === 'fr' ? 'Ces créneaux seront créés à la publication. Vous pourrez les modifier après.' : 'These slots will be created on publish. You can edit them after.'}</p>
+                </div>
+              )}
+
+              {/* Existing slots — inline editable */}
+              {mySlots.length > 0 && (
                 <div className="mb-4">
                   {(() => {
                     const DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
@@ -726,7 +747,20 @@ export default function RestaurantDashboard() {
                             <div className="space-y-1.5">
                               {recurring.map(s => (
                                 <div key={s.id} className="flex items-center justify-between rounded-lg px-3 py-2 bg-white/[0.03] border border-white/[0.06]">
-                                  <span className="font-dm text-white/60 text-[12px]">{DAYS[s.day_of_week]} {s.start_time?.slice(0, 5)}-{s.end_time?.slice(0, 5)} <span className="text-white/30">(max {s.max_bookings})</span></span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-dm text-white/60 text-[12px]">{DAYS[s.day_of_week]}</span>
+                                    <input type="time" defaultValue={s.start_time?.slice(0, 5)}
+                                      onBlur={e => { if (e.target.value !== s.start_time?.slice(0, 5)) handleUpdateSlot(s.id, e.target.value, s.end_time?.slice(0, 5) || '14:00', s.max_bookings) }}
+                                      className="font-dm text-white/60 text-[12px] bg-transparent border-none outline-none w-16 cursor-pointer hover:text-white" />
+                                    <span className="text-white/30">-</span>
+                                    <input type="time" defaultValue={s.end_time?.slice(0, 5)}
+                                      onBlur={e => { if (e.target.value !== s.end_time?.slice(0, 5)) handleUpdateSlot(s.id, s.start_time?.slice(0, 5) || '12:00', e.target.value, s.max_bookings) }}
+                                      className="font-dm text-white/60 text-[12px] bg-transparent border-none outline-none w-16 cursor-pointer hover:text-white" />
+                                    <span className="text-white/30 text-[11px]">max</span>
+                                    <input type="number" defaultValue={s.max_bookings} min={1}
+                                      onBlur={e => { const v = parseInt(e.target.value) || 1; if (v !== s.max_bookings) handleUpdateSlot(s.id, s.start_time?.slice(0, 5) || '12:00', s.end_time?.slice(0, 5) || '14:00', v) }}
+                                      className="font-dm text-white/60 text-[12px] bg-transparent border-none outline-none w-8 text-center cursor-pointer hover:text-white" />
+                                  </div>
                                   <button onClick={() => handleDeleteSlot(s.id)} className="font-dm text-red-400/60 hover:text-red-400 text-[18px] cursor-pointer" style={{ background: 'none', border: 'none' }}>&times;</button>
                                 </div>
                               ))}
@@ -739,7 +773,20 @@ export default function RestaurantDashboard() {
                             <div className="space-y-1.5">
                               {specific.map(s => (
                                 <div key={s.id} className="flex items-center justify-between rounded-lg px-3 py-2" style={{ background: 'rgba(232,71,26,0.04)', border: '1px solid rgba(232,71,26,0.08)' }}>
-                                  <span className="font-dm text-white/60 text-[12px]"><span className="text-[#E8471A]">{new Date(s.specific_date!).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}</span> {s.start_time?.slice(0, 5)}-{s.end_time?.slice(0, 5)} <span className="text-white/30">(max {s.max_bookings})</span></span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-dm text-[#E8471A] text-[12px]">{new Date(s.specific_date!).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                                    <input type="time" defaultValue={s.start_time?.slice(0, 5)}
+                                      onBlur={e => { if (e.target.value !== s.start_time?.slice(0, 5)) handleUpdateSlot(s.id, e.target.value, s.end_time?.slice(0, 5) || '14:00', s.max_bookings) }}
+                                      className="font-dm text-white/60 text-[12px] bg-transparent border-none outline-none w-16 cursor-pointer hover:text-white" />
+                                    <span className="text-white/30">-</span>
+                                    <input type="time" defaultValue={s.end_time?.slice(0, 5)}
+                                      onBlur={e => { if (e.target.value !== s.end_time?.slice(0, 5)) handleUpdateSlot(s.id, s.start_time?.slice(0, 5) || '12:00', e.target.value, s.max_bookings) }}
+                                      className="font-dm text-white/60 text-[12px] bg-transparent border-none outline-none w-16 cursor-pointer hover:text-white" />
+                                    <span className="text-white/30 text-[11px]">max</span>
+                                    <input type="number" defaultValue={s.max_bookings} min={1}
+                                      onBlur={e => { const v = parseInt(e.target.value) || 1; if (v !== s.max_bookings) handleUpdateSlot(s.id, s.start_time?.slice(0, 5) || '12:00', s.end_time?.slice(0, 5) || '14:00', v) }}
+                                      className="font-dm text-white/60 text-[12px] bg-transparent border-none outline-none w-8 text-center cursor-pointer hover:text-white" />
+                                  </div>
                                   <button onClick={() => handleDeleteSlot(s.id)} className="font-dm text-red-400/60 hover:text-red-400 text-[18px] cursor-pointer" style={{ background: 'none', border: 'none' }}>&times;</button>
                                 </div>
                               ))}
@@ -752,14 +799,13 @@ export default function RestaurantDashboard() {
                 </div>
               )}
 
-              {/* Add slot toggle */}
+              {/* Add slot */}
               <div className="flex gap-1 rounded-lg p-0.5 mb-3" style={{ background: 'rgba(255,255,255,0.03)', display: 'inline-flex' }}>
                 <button onClick={() => setSlotMode('recurring')} className="font-dm text-[11px] font-semibold px-3 py-1.5 rounded-md cursor-pointer transition-all"
                   style={{ background: slotMode === 'recurring' ? (c.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)') : 'transparent', color: slotMode === 'recurring' ? (c.isLight ? '#111' : '#fff') : (c.isLight ? '#999' : 'rgba(255,255,255,0.3)'), border: 'none' }}>{t.recurring}</button>
                 <button onClick={() => setSlotMode('date')} className="font-dm text-[11px] font-semibold px-3 py-1.5 rounded-md cursor-pointer transition-all"
                   style={{ background: slotMode === 'date' ? 'rgba(232,71,26,0.15)' : 'transparent', color: slotMode === 'date' ? '#E8471A' : (c.isLight ? '#999' : 'rgba(255,255,255,0.3)'), border: 'none' }}>{t.specificDate}</button>
               </div>
-
               <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:flex-wrap">
                 {slotMode === 'recurring' ? (
                   <select value={newSlot.dayOfWeek} onChange={e => setNewSlot(p => ({ ...p, dayOfWeek: e.target.value }))}
@@ -782,21 +828,93 @@ export default function RestaurantDashboard() {
                 <button onClick={handleAddSlot} className="font-dm text-[12px] font-semibold px-4 py-2 rounded-lg cursor-pointer transition-all hover:brightness-110 col-span-2"
                   style={{ background: '#E8471A', color: '#fff', border: 'none', height: 36 }}>{t.addSlot}</button>
               </div>
+
+              {/* Auto-accept toggle (moved from Collabs tab) */}
+              <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${c.divider}` }}>
+                <label className="flex items-center gap-3 cursor-pointer mb-4">
+                  <div onClick={toggleAutoAccept} className="w-10 h-5 rounded-full relative transition-all" style={{ background: autoAccept ? '#E8471A' : 'var(--input-bg, rgba(255,255,255,0.1))', border: autoAccept ? 'none' : '1px solid var(--input-border, rgba(255,255,255,0.15))' }}>
+                    <div className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all" style={{ left: autoAccept ? 22 : 2, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-dm text-white/60 text-[13px]">{autoAccept ? t.autoAccept : t.autoAcceptOff}</span>
+                    <span className="font-dm text-white/20 text-[10px] cursor-help" title={locale === 'fr' ? 'Les créateurs vérifiés réservent directement, sans validation manuelle de votre part' : 'Verified creators book directly without your manual approval'}>ⓘ</span>
+                  </div>
+                </label>
+
+                {/* Weekly limit */}
+                <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${c.divider}` }}>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <div onClick={() => saveMaxPerWeek(maxPerWeek === null ? 5 : null)}
+                      className="w-10 h-5 rounded-full relative transition-all" style={{
+                        background: maxPerWeek !== null ? '#E8471A' : 'var(--input-bg, rgba(255,255,255,0.1))',
+                        border: maxPerWeek !== null ? 'none' : '1px solid var(--input-border, rgba(255,255,255,0.15))',
+                      }}>
+                      <div className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all" style={{ left: maxPerWeek !== null ? 22 : 2, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                    </div>
+                    <span className="font-dm font-semibold text-[13px]" style={{ color: c.text }}>{maxPerWeek !== null ? t.weeklyLimit : t.weeklyLimitOff}</span>
+                  </label>
+                  {maxPerWeek !== null && (
+                    <div className="flex items-center gap-3 mt-3 ml-[52px]">
+                      <button onClick={() => saveMaxPerWeek(Math.max(1, (maxPerWeek || 5) - 1))}
+                        className="font-dm w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer text-[16px]"
+                        style={{ background: c.inputBg, border: `1px solid ${c.inputBorder}`, color: c.text }}>−</button>
+                      <span className="font-dm text-[18px] font-bold" style={{ color: '#E8471A', minWidth: 24, textAlign: 'center' }}>{maxPerWeek}</span>
+                      <button onClick={() => saveMaxPerWeek(Math.min(50, (maxPerWeek || 5) + 1))}
+                        className="font-dm w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer text-[16px]"
+                        style={{ background: c.inputBg, border: `1px solid ${c.inputBorder}`, color: c.text }}>+</button>
+                      <span className="font-dm text-white/40 text-[12px]">{t.perWeek}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Save offer — bottom of collabs tab */}
-            <div className="mt-4 flex items-center gap-3">
-              <button onClick={handleSaveOffer} disabled={offerSaving}
-                className="font-dm text-[13px] font-semibold px-6 py-3 rounded-xl cursor-pointer transition-all hover:brightness-110"
-                style={{ background: '#E8471A', color: '#fff', border: 'none', opacity: offerSaving ? 0.6 : 1 }}>
-                {offerSaving ? (locale === 'fr' ? 'Enregistrement...' : 'Saving...') : t.saveOffer}
-              </button>
-              {offerSaved && (
-                <span className="font-dm text-[#4ade80] text-[13px] font-semibold animate-fade-in">
-                  {locale === 'fr' ? 'Offre enregistrée !' : 'Offer saved!'}
-                </span>
-              )}
+            {/* Photos */}
+            <div className="rounded-2xl p-5 mb-4" style={{ background: c.cardBg, border: `1px solid ${c.divider}` }}>
+              <label className="font-dm text-white/50 text-[11px] uppercase tracking-[0.06em] block mb-3">{t.photos}</label>
+              {myPhotos.length > 0 ? (
+                <div className="grid gap-2 mb-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))' }}>
+                  {myPhotos.map((url, i) => (
+                    <div key={i} className="relative rounded-lg overflow-hidden" style={{ aspectRatio: '1', width: '100%' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button onClick={() => handleRemovePhoto(url)}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-[12px] cursor-pointer"
+                        style={{ background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none' }}>&times;</button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <div className="mb-3">
+                <label className="font-dm text-[11px] font-semibold px-4 py-2 rounded-lg cursor-pointer transition-all hover:brightness-110 inline-flex items-center gap-2"
+                  style={{ background: '#E8471A', color: '#fff' }}>
+                  {uploading ? (locale === 'fr' ? `Upload ${uploadProgress}...` : `Uploading ${uploadProgress}...`) : (locale === 'fr' ? 'Uploader des photos' : 'Upload photos')}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" multiple
+                    disabled={uploading}
+                    onChange={e => { const files = e.target.files; if (files && files.length > 0) handleUploadPhotos(files); e.target.value = '' }} />
+                </label>
+              </div>
+              <div className="flex gap-2">
+                <input value={newPhotoUrl} onChange={e => setNewPhotoUrl(e.target.value)}
+                  placeholder={t.phPhoto} onKeyDown={e => e.key === 'Enter' && handleAddPhoto()}
+                  className="font-dm flex-1 rounded-lg text-[12px] text-white/90 placeholder:text-white/20 outline-none"
+                  style={{ height: 38, padding: '0 12px', background: c.inputBg, border: `1px solid ${c.inputBorder}` }} />
+                <button onClick={handleAddPhoto}
+                  className="font-dm text-[11px] font-semibold px-3 rounded-lg cursor-pointer transition-all hover:brightness-110"
+                  style={{ height: 38, background: c.inputBg, color: c.textMuted, border: `1px solid ${c.inputBorder}` }}>+</button>
+              </div>
             </div>
+
+            {/* Publish button — shown only BEFORE first publish */}
+            {!firstPublishedAt && (
+              <div data-tour="publish" className="sticky bottom-4 z-40 mt-4">
+                <button onClick={handleFirstPublish}
+                  className="font-dm w-full text-[15px] font-bold rounded-xl cursor-pointer transition-all hover:brightness-110 active:scale-[0.98]"
+                  style={{ background: '#E8471A', color: '#fff', height: 56, border: 'none' }}>
+                  {locale === 'fr' ? 'Publier mon offre' : 'Publish my offer'} →
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -805,45 +923,6 @@ export default function RestaurantDashboard() {
           <div style={{ maxWidth: 720 }}>
             {/* Rating widget — pending creator evaluations */}
             <RatingWidget />
-
-            {/* Auto-accept toggle */}
-            <label className="flex items-center gap-3 mb-5 cursor-pointer">
-              <div onClick={toggleAutoAccept} className="w-10 h-5 rounded-full relative transition-all" style={{ background: autoAccept ? '#E8471A' : 'var(--input-bg, rgba(255,255,255,0.1))', border: autoAccept ? 'none' : '1px solid var(--input-border, rgba(255,255,255,0.15))' }}>
-                <div className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all" style={{ left: autoAccept ? 22 : 2, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-              </div>
-              <span className="font-dm text-white/60 text-[13px]">{autoAccept ? t.autoAccept : t.autoAcceptOff}</span>
-            </label>
-
-            {/* Weekly limit setting */}
-            <div className="mb-5 rounded-2xl p-4" style={{ background: c.cardBg, border: `1px solid ${c.divider}` }}>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <div onClick={() => saveMaxPerWeek(maxPerWeek === null ? 3 : null)}
-                  className="w-10 h-5 rounded-full relative transition-all" style={{
-                    background: maxPerWeek !== null ? '#E8471A' : 'var(--input-bg, rgba(255,255,255,0.1))',
-                    border: maxPerWeek !== null ? 'none' : '1px solid var(--input-border, rgba(255,255,255,0.15))',
-                  }}>
-                  <div className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all" style={{
-                    left: maxPerWeek !== null ? 22 : 2, boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                  }} />
-                </div>
-                <div>
-                  <span className="font-dm font-semibold text-[13px]" style={{ color: c.text }}>{maxPerWeek !== null ? t.weeklyLimit : t.weeklyLimitOff}</span>
-                  <span className="font-dm text-white/30 text-[11px] block">{t.weeklyLimitHint}</span>
-                </div>
-              </label>
-              {maxPerWeek !== null && (
-                <div className="flex items-center gap-3 mt-3 ml-0 sm:ml-[52px]">
-                  <button onClick={() => saveMaxPerWeek(Math.max(1, (maxPerWeek || 3) - 1))}
-                    className="font-dm w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer text-[16px]"
-                    style={{ background: c.inputBg, border: `1px solid ${c.inputBorder}`, color: c.text }}>−</button>
-                  <span className="font-dm text-[18px] font-bold" style={{ color: '#E8471A', minWidth: 24, textAlign: 'center' }}>{maxPerWeek}</span>
-                  <button onClick={() => saveMaxPerWeek(Math.min(50, (maxPerWeek || 3) + 1))}
-                    className="font-dm w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer text-[16px]"
-                    style={{ background: c.inputBg, border: `1px solid ${c.inputBorder}`, color: c.text }}>+</button>
-                  <span className="font-dm text-white/40 text-[12px]">{t.perWeek}</span>
-                </div>
-              )}
-            </div>
 
             {bookings.length === 0 ? (
               <p className="font-dm text-white/30 text-center py-12">{t.noCollabs}</p>
@@ -1797,6 +1876,31 @@ export default function RestaurantDashboard() {
           </div>
         </div>
       )}
+
+      {/* Onboarding tour */}
+      {showTour && <OnboardingTour onComplete={handleCompleteTour} locale={locale} />}
+
+      {/* Floating help button */}
+      <div className="fixed bottom-5 right-5 z-[100]">
+        <button onClick={() => setShowHelpMenu(v => !v)}
+          className="w-11 h-11 rounded-full flex items-center justify-center cursor-pointer shadow-lg text-[18px] font-bold transition-all hover:scale-110"
+          style={{ background: '#E8471A', color: '#fff', border: 'none' }}>?</button>
+        {showHelpMenu && (
+          <div className="absolute bottom-14 right-0 rounded-xl p-4 shadow-xl" style={{ background: c.isLight ? '#fff' : '#1e1b17', border: `1px solid ${c.divider}`, width: 220 }}>
+            <button onClick={() => { setShowHelpMenu(false); setShowTour(true) }}
+              className="font-dm text-[13px] w-full text-left px-3 py-2 rounded-lg cursor-pointer transition-all hover:bg-white/5"
+              style={{ background: 'none', border: 'none', color: c.text }}>
+              {locale === 'fr' ? 'Rejouer le tour guidé' : 'Replay guided tour'}
+            </button>
+            <a href="/legal/faq" target="_blank" rel="noopener"
+              className="font-dm text-[13px] block px-3 py-2 rounded-lg transition-all hover:bg-white/5"
+              style={{ color: c.textMuted, textDecoration: 'none' }}>FAQ</a>
+            <a href="mailto:contact@2960agency.com"
+              className="font-dm text-[13px] block px-3 py-2 rounded-lg transition-all hover:bg-white/5"
+              style={{ color: c.textMuted, textDecoration: 'none' }}>contact@2960agency.com</a>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
