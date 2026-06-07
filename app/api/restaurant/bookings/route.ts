@@ -58,7 +58,8 @@ export async function PATCH(req: NextRequest) {
       SELECT b.*, c.first_name, c.last_name, c.email as creator_email, c.phone as creator_phone,
              c.tiktok_username, r.name as restaurant_name, r.address as restaurant_address,
              r.city as restaurant_city, r.offer_description,
-             ts.start_time, ts.end_time
+             ts.start_time, ts.end_time,
+             b.slot_start_time, b.slot_end_time
       FROM bookings b
       JOIN creators c ON b.creator_id = c.id
       JOIN restaurants r ON b.restaurant_id = r.id
@@ -179,7 +180,9 @@ export async function PATCH(req: NextRequest) {
           restaurantOwner: session.ownerName,
           conversationUrl: `${appUrl}/conversation/${convToken}`,
           bookingDate: `${DAYS[bookingDate.getDay()]} ${bookingDate.toLocaleDateString('fr-FR')}`,
-          timeSlot: `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}`,
+          timeSlot: b.slot_start_time && b.slot_end_time
+            ? `${b.slot_start_time.slice(0, 5)} - ${b.slot_end_time.slice(0, 5)}`
+            : `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}`,
           offerDescription: b.offer_description,
         })
       } catch (emailErr) {

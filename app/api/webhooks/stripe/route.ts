@@ -3,6 +3,7 @@ import { stripe, PLAN_CONFIG, NO_SUB_EXTRA_PRICE } from '@/lib/stripe'
 import sql from '@/lib/db'
 import { nanoid } from 'nanoid'
 import { sendBookingConfirmation } from '@/lib/email'
+import { track } from '@/lib/track'
 import { syncCollabUsage } from '@/lib/collab-billing'
 
 export async function POST(req: NextRequest) {
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
                      c.tiktok_username, r.name as restaurant_name, r.address as restaurant_address,
                      r.city as restaurant_city, r.offer_description,
                      ts.start_time, ts.end_time,
+                     b.slot_start_time, b.slot_end_time,
                      ba.email as resto_email, ba.owner_name as resto_owner
               FROM bookings b
               JOIN creators c ON b.creator_id = c.id
@@ -76,7 +78,9 @@ export async function POST(req: NextRequest) {
                 restaurantOwner: bk.resto_owner,
                 conversationUrl: `${appUrl}/conversation/${convToken}`,
                 bookingDate: `${DAYS[date.getDay()]} ${date.toLocaleDateString('fr-FR')}`,
-                timeSlot: `${bk.start_time.slice(0, 5)} - ${bk.end_time.slice(0, 5)}`,
+                timeSlot: bk.slot_start_time && bk.slot_end_time
+                  ? `${bk.slot_start_time.slice(0, 5)} - ${bk.slot_end_time.slice(0, 5)}`
+                  : `${bk.start_time.slice(0, 5)} - ${bk.end_time.slice(0, 5)}`,
                 offerDescription: bk.offer_description,
               })
             }
@@ -110,6 +114,7 @@ export async function POST(req: NextRequest) {
               stripe_subscription_id = ${subscriptionId}
             WHERE id = ${rid}
           `
+          track({ event: 'abonnement_payant', userId: rid, userType: 'restaurant', metadata: { plan, billing } })
           // Reset collab_usage for this month — previous collabs were trial or paid per-unit
           const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
           await sql`

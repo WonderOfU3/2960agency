@@ -3,6 +3,7 @@ import sql from '@/lib/db'
 import { getAdminSession } from '@/lib/session'
 import { sendCreatorValidation } from '@/lib/email'
 import { hashPassword } from '@/lib/auth'
+import { track } from '@/lib/track'
 
 export async function PATCH(
   req: NextRequest,
@@ -20,6 +21,7 @@ export async function PATCH(
 
     if (action === 'validate') {
       await sql`UPDATE creators SET status = 'active', validated_at = NOW(), onboarding_step = 1 WHERE id = ${parseInt(id)}`
+      track({ event: 'inscription_validee', userId: id, userType: 'creator' })
 
       // Send validation email to creator
       const creator = await sql`

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { verifyPassword } from '@/lib/auth'
+import { track } from '@/lib/track'
 
 export async function POST(req: NextRequest) {
   try {
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
       maxAge: 24 * 60 * 60,
       path: '/',
     })
+    track({ event: 'connexion', userId: creator.id, userType: 'creator' })
 
     return response
   } catch (err) {

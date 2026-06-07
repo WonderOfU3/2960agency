@@ -434,6 +434,19 @@ export async function sendCreatorDripC4(creator: { firstName: string; email: str
   await sendToUser(creator.email, 'Ton profil est validé — les créneaux sont là', html)
 }
 
+// C5 — J+10 (push Moteur B) — show a real restaurant
+export async function sendCreatorDripC5(creator: { firstName: string; email: string; restoName: string; maxGuests: number; maxPrime: number }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const primeText = creator.maxPrime > 0 ? `Et si ta vidéo perce, tu peux gagner jusqu'à ${creator.maxPrime}€ pour une seule vidéo.\n\n` : ''
+  const html = buildDripEmail(
+    creator.firstName,
+    `${creator.restoName} aimerait te faire découvrir sa cuisine.\n\nTu viens filmer ta vidéo, et tu peux emmener jusqu'à ${creator.maxGuests} pote${creator.maxGuests > 1 ? 's' : ''} avec toi.\n\n${primeText}Ta place t'attend.`,
+    null,
+    'Je réserve en 1 clic', `${appUrl}/creator/dashboard`,
+  )
+  await sendToUser(creator.email, `${creator.restoName} aimerait te recevoir cette semaine`, html)
+}
+
 // ═══════════════════════════════════════
 // R1 — Restaurant accepted (immediate)
 // ═══════════════════════════════════════

@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getCreatorSession } from '@/lib/session'
+import { track } from '@/lib/track'
 
 export async function GET() {
   const session = await getCreatorSession()
   if (!session) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
+  track({ event: 'offre_vue', userId: session.id, userType: 'creator' })
 
   try {
     const restaurants = await sql`

@@ -3,6 +3,7 @@ import sql from '@/lib/db'
 import { getCreatorSession } from '@/lib/session'
 import { sendBookingConfirmation } from '@/lib/email'
 import { notifyNewBooking, notifyBookingCancelled } from '@/lib/notifications'
+import { track } from '@/lib/track'
 import { nanoid } from 'nanoid'
 import { checkCollabBilling, syncCollabUsage } from '@/lib/collab-billing'
 import { consumeCredit, handleCreatorCancellation, calculateVideoDeadline } from '@/lib/gamification'
@@ -269,6 +270,7 @@ export async function POST(req: NextRequest) {
               ${slotStartTime || null}, ${slotEndTime || null}, ${numPeople || 1})
       RETURNING id
     `
+    track({ event: 'reservation_lancee', userId: session.id, userType: 'creator', metadata: { restaurantId, bookingId: bookingResult[0].id } })
 
     // Consume a credit if auto-confirmed
     if (bookingStatus === 'confirmed') {
@@ -276,6 +278,7 @@ export async function POST(req: NextRequest) {
       // Set video deadline
       const vDeadline = calculateVideoDeadline(date)
       await sql`UPDATE bookings SET video_deadline = ${vDeadline.toISOString()} WHERE id = ${bookingResult[0].id}`
+      track({ event: 'reservation_confirmee', userId: session.id, userType: 'creator', metadata: { restaurantId, bookingId: bookingResult[0].id, source: 'organique' } })
     }
 
     // If auto-confirmed as a trial collab, increment trial_collabs_used
@@ -334,7 +337,9 @@ export async function POST(req: NextRequest) {
         restaurantOwner,
         conversationUrl: `${appUrl}/conversation/${convToken}`,
         bookingDate: `${DAYS[date.getDay()]} ${date.toLocaleDateString('fr-FR')}`,
-        timeSlot: `${slot[0].start_time.slice(0, 5)} - ${slot[0].end_time.slice(0, 5)}`,
+        timeSlot: slotStartTime && slotEndTime
+          ? `${slotStartTime.slice(0, 5)} - ${slotEndTime.slice(0, 5)}`
+          : `${slot[0].start_time.slice(0, 5)} - ${slot[0].end_time.slice(0, 5)}`,
         offerDescription: resto.offer_description,
       })
     } catch (emailErr) {

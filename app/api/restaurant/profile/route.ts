@@ -18,7 +18,8 @@ export async function GET() {
     if (session.restaurantId) {
       const r = await sql`
         SELECT restaurants.name, restaurants.cuisine_type, restaurants.address, restaurants.city, restaurants.arrondissement,
-               ba.instagram_username, ba.tiktok_username, ba.website
+               ba.instagram_username, ba.tiktok_username, ba.website,
+               ba.siren, ba.avg_meal_price
         FROM restaurants
         LEFT JOIN business_applications ba ON restaurants.business_application_id = ba.id
         WHERE restaurants.id = ${session.restaurantId}
@@ -72,6 +73,21 @@ export async function PATCH(req: NextRequest) {
               instagram_username = ${body.instagram || null},
               tiktok_username = ${body.tiktok || null},
               website = ${body.website || null}
+            WHERE id = ${resto[0].business_application_id}
+          `
+        }
+      }
+      return NextResponse.json({ success: true })
+    }
+
+    if (body.action === 'update_extra') {
+      if (session.restaurantId) {
+        const resto = await sql`SELECT business_application_id FROM restaurants WHERE id = ${session.restaurantId}`
+        if (resto.length > 0 && resto[0].business_application_id) {
+          await sql`
+            UPDATE business_applications SET
+              siren = ${body.siren || null},
+              avg_meal_price = ${body.avgMealPrice ? parseInt(body.avgMealPrice) : null}
             WHERE id = ${resto[0].business_application_id}
           `
         }

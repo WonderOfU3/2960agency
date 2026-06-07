@@ -219,7 +219,7 @@ export default function RestaurantDashboard() {
   const [reportedBookings, setReportedBookings] = useState<Set<number>>(new Set())
   const [slotMode, setSlotMode] = useState<'recurring' | 'date'>('recurring')
   const [newSlot, setNewSlot] = useState({ dayOfWeek: '1', startTime: '12:00', endTime: '14:00', maxBookings: '1', date: '' })
-  const [restoSettings, setRestoSettings] = useState({ ownerName: '', phone: '', businessName: '', cuisineType: '', address: '', city: '', arrondissement: '', tiktok: '', instagram: '', website: '' })
+  const [restoSettings, setRestoSettings] = useState({ ownerName: '', phone: '', businessName: '', cuisineType: '', address: '', city: '', arrondissement: '', tiktok: '', instagram: '', website: '', siren: '', avgMealPrice: '' })
   const [restoPasswordForm, setRestoPasswordForm] = useState({ newPw: '' })
   const [restoEmailForm, setRestoEmailForm] = useState('')
   const [restoSettingsMsg, setRestoSettingsMsg] = useState('')
@@ -380,6 +380,7 @@ export default function RestaurantDashboard() {
           city: data.restaurant?.city || '', arrondissement: data.restaurant?.arrondissement || '',
           tiktok: data.restaurant?.tiktok_username || '', instagram: data.restaurant?.instagram_username || '',
           website: data.restaurant?.website || '',
+          siren: data.restaurant?.siren || '', avgMealPrice: data.restaurant?.avg_meal_price ? String(data.restaurant.avg_meal_price) : '',
         })
         setRestoEmailForm(u.email || '')
         setRestoSettingsLoaded(true)
@@ -1599,6 +1600,32 @@ export default function RestaurantDashboard() {
               <button onClick={async () => {
                 const res = await fetch('/api/restaurant/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ action: 'update_socials', ...restoSettings }) })
+                if (res.ok) { setRestoSettingsMsg(t.saved); setTimeout(() => setRestoSettingsMsg(''), 2000) }
+              }} className="font-dm text-[12px] font-semibold px-5 py-2 rounded-lg cursor-pointer" style={{ background: '#E8471A', color: '#fff', border: 'none' }}>
+                {t.save}
+              </button>
+            </div>
+
+            {/* Business details */}
+            <div className="rounded-2xl p-5 mb-4" style={{ background: c.cardBg, border: `1px solid ${c.divider}` }}>
+              <p className="font-dm text-white/50 text-[11px] uppercase tracking-[0.06em] mb-4">{locale === 'fr' ? 'Informations légales' : 'Legal information'}</p>
+              <div className="grid gap-3 sm:grid-cols-2 mb-3">
+                <div>
+                  <label className="font-dm form-label text-[11px] block mb-1">{locale === 'fr' ? 'SIREN / SIRET' : 'Business registration (SIREN)'}</label>
+                  <input value={restoSettings.siren} onChange={e => setRestoSettings(p => ({ ...p, siren: e.target.value }))} placeholder="123 456 789"
+                    className="font-dm w-full rounded-lg text-[13px] text-white/90 placeholder:text-white/20 outline-none"
+                    style={{ height: 40, padding: '0 12px', background: c.inputBg, border: `1px solid ${c.inputBorder}` }} />
+                </div>
+                <div>
+                  <label className="font-dm form-label text-[11px] block mb-1">{locale === 'fr' ? 'Prix moyen / pers. (€)' : 'Avg. meal price (€)'}</label>
+                  <input type="number" value={restoSettings.avgMealPrice} onChange={e => setRestoSettings(p => ({ ...p, avgMealPrice: e.target.value }))} placeholder="25"
+                    className="font-dm w-full rounded-lg text-[13px] text-white/90 placeholder:text-white/20 outline-none"
+                    style={{ height: 40, padding: '0 12px', background: c.inputBg, border: `1px solid ${c.inputBorder}` }} />
+                </div>
+              </div>
+              <button onClick={async () => {
+                const res = await fetch('/api/restaurant/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'update_extra', siren: restoSettings.siren, avgMealPrice: restoSettings.avgMealPrice }) })
                 if (res.ok) { setRestoSettingsMsg(t.saved); setTimeout(() => setRestoSettingsMsg(''), 2000) }
               }} className="font-dm text-[12px] font-semibold px-5 py-2 rounded-lg cursor-pointer" style={{ background: '#E8471A', color: '#fff', border: 'none' }}>
                 {t.save}

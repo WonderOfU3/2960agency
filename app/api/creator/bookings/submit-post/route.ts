@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getCreatorSession } from '@/lib/session'
 import { notifyPostSubmitted } from '@/lib/notifications'
+import { track } from '@/lib/track'
 
 export async function POST(req: NextRequest) {
   const session = await getCreatorSession()
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
       SET post_link = ${postLink}, post_submitted_at = NOW()
       WHERE id = ${bookingId}
     `
+    track({ event: 'lien_video_poste', userId: session.id, userType: 'creator', metadata: { bookingId } })
 
     // Notify restaurant
     try {

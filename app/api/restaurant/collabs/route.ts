@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getRestaurantSession } from '@/lib/session'
+import { track } from '@/lib/track'
 
 // GET: list restaurant's own time slots
 export async function GET() {
@@ -62,6 +63,7 @@ export async function POST(req: NextRequest) {
         VALUES (${session.restaurantId}, ${body.dayOfWeek}, ${body.startTime}, ${body.endTime}, ${body.maxBookings || 1}, true)
       `
       await sql`UPDATE restaurants SET is_published = true WHERE id = ${session.restaurantId}`
+      track({ event: 'offre_publiee', userId: session.restaurantId, userType: 'restaurant' })
       return NextResponse.json({ success: true })
     }
 
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest) {
         VALUES (${session.restaurantId}, ${date.getDay()}, ${body.startTime}, ${body.endTime}, ${body.maxBookings || 1}, true, ${body.date})
       `
       await sql`UPDATE restaurants SET is_published = true WHERE id = ${session.restaurantId}`
+      track({ event: 'offre_publiee', userId: session.restaurantId, userType: 'restaurant' })
       return NextResponse.json({ success: true })
     }
 
@@ -99,6 +102,9 @@ export async function POST(req: NextRequest) {
     // Toggle publish
     if (body.action === 'toggle_publish') {
       await sql`UPDATE restaurants SET is_published = ${body.isPublished} WHERE id = ${session.restaurantId}`
+      if (body.isPublished) {
+        track({ event: 'offre_publiee', userId: session.restaurantId, userType: 'restaurant' })
+      }
       return NextResponse.json({ success: true })
     }
 

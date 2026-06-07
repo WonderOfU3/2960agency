@@ -49,7 +49,9 @@ export async function GET(req: NextRequest) {
         restaurantAddress: b.restaurant_address,
         restaurantCity: b.restaurant_city,
         bookingDate: `${DAYS[bookingDate.getDay()]} ${bookingDate.toLocaleDateString('fr-FR')}`,
-        timeSlot: `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}`,
+        timeSlot: b.slot_start_time && b.slot_end_time
+          ? `${b.slot_start_time.slice(0, 5)} - ${b.slot_end_time.slice(0, 5)}`
+          : `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}`,
         offerDescription: b.offer_description,
         reconfirmUrl: `${appUrl}/api/creator/bookings/reconfirm-link?bookingId=${b.id}&token=${b.token}`,
       })
