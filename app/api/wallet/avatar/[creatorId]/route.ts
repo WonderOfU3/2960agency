@@ -1,3 +1,5 @@
+export const runtime = 'nodejs'
+
 import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { generateMonogramAvatar } from '@/lib/wallet/generate-avatar'
