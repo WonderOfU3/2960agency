@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getCreatorSession } from '@/lib/session'
-import { sendBookingConfirmation } from '@/lib/email'
+import { sendBookingConfirmation, sendBookingCancelledEmail } from '@/lib/email'
 import { notifyNewBooking, notifyBookingCancelled } from '@/lib/notifications'
 import { track } from '@/lib/track'
 import { nanoid } from 'nanoid'
@@ -101,11 +101,18 @@ export async function PATCH(req: NextRequest) {
         }
       }
 
-      // Notify restaurant
+      // Notify restaurant (in-app + email)
       try {
         const cr = await sql`SELECT first_name, last_name FROM creators WHERE id = ${session.id}`
         if (cr.length > 0) {
-          await notifyBookingCancelled(b.restaurant_id, `${cr[0].first_name} ${cr[0].last_name}`)
+          const creatorName = `${cr[0].first_name} ${cr[0].last_name}`
+          await notifyBookingCancelled(b.restaurant_id, creatorName)
+          // Send email to restaurant owner
+          const ru = await sql`SELECT owner_name, email FROM restaurant_users WHERE restaurant_id = ${b.restaurant_id}`
+          if (ru.length > 0) {
+            const dateStr = new Date(b.booking_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+            await sendBookingCancelledEmail({ ownerName: ru[0].owner_name, email: ru[0].email, creatorName, bookingDate: dateStr })
+          }
         }
       } catch (e) { console.error('Cancel notification error:', e) }
 

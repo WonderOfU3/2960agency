@@ -244,6 +244,9 @@ export default function RestaurantDashboard() {
   const [autoSaveIndicator, setAutoSaveIndicator] = useState(false)
   const [showHelpMenu, setShowHelpMenu] = useState(false)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [onboardingGate, setOnboardingGate] = useState(false)
+  const [onboardingForm, setOnboardingForm] = useState({ ownerName: '', phone: '', address: '', city: '' })
+  const [onboardingSaving, setOnboardingSaving] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
@@ -279,7 +282,22 @@ export default function RestaurantDashboard() {
       setAutoAccept(colData.autoAccept !== false)
       setIsFirstTime(colData.isFirstTime || false)
       setFirstPublishedAt(colData.firstPublishedAt || null)
+      // Check if restaurant needs to complete onboarding (missing address)
       if (colData.isFirstTime) {
+        // Fetch profile to check if address/owner are filled
+        try {
+          const profRes = await fetch('/api/restaurant/profile')
+          if (profRes.ok) {
+            const profData = await profRes.json()
+            const r = profData.restaurant
+            const u = profData.user
+            // Gate: if no address filled yet, force completion
+            if (!r?.address || r.address.trim() === '') {
+              setOnboardingGate(true)
+              setOnboardingForm({ ownerName: u?.owner_name || '', phone: u?.phone || '', address: r?.address || '', city: r?.city || '' })
+            }
+          }
+        } catch { /* non-blocking */ }
         setMaxPeople(3)
         setMaxPerWeek(5)
       }
@@ -531,6 +549,88 @@ export default function RestaurantDashboard() {
       <span className="animate-spin inline-block w-8 h-8 border-2 border-[#E8471A]/30 border-t-[#E8471A] rounded-full" />
     </div>
   )
+
+  // Onboarding gate: force restaurant to complete profile before accessing dashboard
+  if (onboardingGate) {
+    const handleOnboardingSave = async () => {
+      if (!onboardingForm.ownerName.trim() || !onboardingForm.address.trim()) return
+      setOnboardingSaving(true)
+      try {
+        await fetch('/api/restaurant/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_profile',
+            ownerName: onboardingForm.ownerName.trim(),
+            phone: onboardingForm.phone.trim(),
+            businessName: restoSettings.businessName || ownerName,
+            address: onboardingForm.address.trim(),
+            city: onboardingForm.city.trim() || 'Paris',
+          }),
+        })
+        setOnboardingGate(false)
+        await fetchData()
+      } catch { /* retry */ }
+      setOnboardingSaving(false)
+    }
+
+    const obInputCls = "font-dm w-full rounded-xl text-[14px] text-white/90 placeholder:text-white/25 outline-none"
+    const obInputStyle = { height: 48, padding: '0 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }
+
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: c.pageBg }}>
+        <div style={{ maxWidth: 440, width: '100%' }}>
+          <h1 className="font-dm text-white text-[24px] sm:text-[30px] font-bold text-center mb-2">
+            {locale === 'fr' ? 'Complétez votre restaurant' : 'Complete your restaurant'}
+          </h1>
+          <p className="font-dm text-white/40 text-[14px] text-center mb-8">
+            {locale === 'fr' ? 'Ces infos sont nécessaires pour recevoir des créateurs.' : 'This info is needed to receive creators.'}
+          </p>
+          <div className="space-y-4">
+            <div>
+              <label className="font-dm text-white/50 text-[11px] font-semibold uppercase tracking-[0.06em] block mb-1.5">
+                {locale === 'fr' ? 'Votre nom' : 'Your name'} <span className="text-[#E8471A]">*</span>
+              </label>
+              <input value={onboardingForm.ownerName} onChange={e => setOnboardingForm(p => ({ ...p, ownerName: e.target.value }))}
+                placeholder={locale === 'fr' ? 'Jean Dupont' : 'Jane Smith'}
+                className={obInputCls} style={obInputStyle} />
+            </div>
+            <div>
+              <label className="font-dm text-white/50 text-[11px] font-semibold uppercase tracking-[0.06em] block mb-1.5">
+                {locale === 'fr' ? 'Adresse du restaurant' : 'Restaurant address'} <span className="text-[#E8471A]">*</span>
+              </label>
+              <input value={onboardingForm.address} onChange={e => setOnboardingForm(p => ({ ...p, address: e.target.value }))}
+                placeholder="12 rue de la Paix, 75002 Paris"
+                className={obInputCls} style={obInputStyle} />
+            </div>
+            <div>
+              <label className="font-dm text-white/50 text-[11px] font-semibold uppercase tracking-[0.06em] block mb-1.5">
+                {locale === 'fr' ? 'Ville' : 'City'}
+              </label>
+              <input value={onboardingForm.city} onChange={e => setOnboardingForm(p => ({ ...p, city: e.target.value }))}
+                placeholder="Paris"
+                className={obInputCls} style={obInputStyle} />
+            </div>
+            <div>
+              <label className="font-dm text-white/50 text-[11px] font-semibold uppercase tracking-[0.06em] block mb-1.5">
+                {locale === 'fr' ? 'Téléphone' : 'Phone'} <span className="text-white/20 normal-case">(optionnel)</span>
+              </label>
+              <input type="tel" value={onboardingForm.phone} onChange={e => setOnboardingForm(p => ({ ...p, phone: e.target.value }))}
+                placeholder="+33 1 23 45 67 89"
+                className={obInputCls} style={obInputStyle} />
+            </div>
+          </div>
+          <button onClick={handleOnboardingSave} disabled={onboardingSaving || !onboardingForm.ownerName.trim() || !onboardingForm.address.trim()}
+            className="font-dm w-full text-[15px] font-bold rounded-xl cursor-pointer transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+            style={{ background: '#E8471A', color: '#fff', height: 52, border: 'none' }}>
+            {onboardingSaving
+              ? (locale === 'fr' ? 'Enregistrement...' : 'Saving...')
+              : (locale === 'fr' ? 'Continuer vers mon offre' : 'Continue to my offer')}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen" style={{ background: c.pageBg }}>

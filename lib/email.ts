@@ -544,6 +544,18 @@ export async function sendRestoPublishedNoBookingsJ5(resto: { ownerName: string;
   await sendToUser(resto.email, '0 réservation — 3 leviers pour débloquer', html)
 }
 
+// Booking cancelled — notify restaurant by email
+export async function sendBookingCancelledEmail(resto: { ownerName: string; email: string; creatorName: string; bookingDate: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
+  const html = buildDripEmail(
+    resto.ownerName,
+    `${resto.creatorName} a annulé sa réservation du ${resto.bookingDate}.\n\nLe créneau est à nouveau disponible pour d'autres créateurs.`,
+    null,
+    'Voir mes collabs', `${appUrl}/restaurant/dashboard?tab=collabs`,
+  )
+  await sendToUser(resto.email, `Réservation annulée — ${resto.creatorName}`, html)
+}
+
 // Moteur B push — suggest restaurant to creator
 export async function sendMoteurBPush(creator: { firstName: string; email: string; restoName: string; maxGuests: number; netPrime: number }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
