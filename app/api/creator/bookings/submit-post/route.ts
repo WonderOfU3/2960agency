@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { getCreatorSession } from '@/lib/session'
 import { notifyPostSubmitted } from '@/lib/notifications'
+import { sendRestoVideo, sendRestoConv } from '@/lib/email'
 import { track } from '@/lib/track'
 
 export async function POST(req: NextRequest) {
@@ -54,6 +55,48 @@ export async function POST(req: NextRequest) {
         await notifyPostSubmitted(bk[0].restaurant_id, `${bk[0].first_name} ${bk[0].last_name}`)
       }
     } catch (e) { console.error('Post submit notification error:', e) }
+
+    // R-VIDEO & R-CONV email triggers (non-blocking)
+    try {
+      const [restaurantRows] = await Promise.all([
+        sql`
+          SELECT r.name, ru.email, b.restaurant_id, c.first_name, c.last_name
+          FROM bookings b
+          JOIN restaurants r ON b.restaurant_id = r.id
+          JOIN restaurant_users ru ON ru.restaurant_id = r.id
+          JOIN creators c ON b.creator_id = c.id
+          WHERE b.id = ${bookingId}
+          LIMIT 1
+        `,
+      ])
+
+      if (restaurantRows.length > 0) {
+        const { name: restoName, email, restaurant_id, first_name, last_name } = restaurantRows[0]
+        const creatorName = `${first_name} ${last_name}`
+
+        // R-VIDEO: notify restaurant that the video is live
+        sendRestoVideo({
+          restoName,
+          email,
+          creatorName,
+          postLink,
+        }).catch((err: unknown) => console.error('R-VIDEO email error:', err))
+
+        // R-CONV: check if this is the restaurant's 3rd completed collab
+        const countRows = await sql`
+          SELECT COUNT(*)::int AS count FROM bookings
+          WHERE restaurant_id = ${restaurant_id} AND post_link IS NOT NULL
+        `
+        const count = countRows[0]?.count ?? 0
+        if (count >= 3) {
+          sendRestoConv({
+            restoName,
+            email,
+            videoCount: count,
+          }).catch((err: unknown) => console.error('R-CONV email error:', err))
+        }
+      }
+    } catch (e) { console.error('R-VIDEO / R-CONV email error:', e) }
 
     return NextResponse.json({ success: true })
   } catch (err) {

@@ -55,7 +55,8 @@ export default function InscrisRestoPageWrapper() {
 function InscrisRestoPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [form, setForm] = useState({ email: '', bizName: '', password: '' })
+  const [form, setForm] = useState({ email: '', bizName: '', password: '', address: '' })
+  const [addressSuggestions, setAddressSuggestions] = useState<{ label: string; city: string; postcode: string; context: string }[]>([])
   const [referralCode, setReferralCode] = useState('')
   const [showReferral, setShowReferral] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -72,10 +73,33 @@ function InscrisRestoPage() {
     if (errors[k]) setErrors(p => { const n = { ...p }; delete n[k]; return n })
   }
 
+  const searchAddress = async (query: string) => {
+    set('address', query)
+    if (query.length < 4) { setAddressSuggestions([]); return }
+    try {
+      const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=5&type=housenumber`)
+      const data = await res.json()
+      setAddressSuggestions(
+        (data.features || []).map((f: any) => ({
+          label: f.properties.label,
+          city: f.properties.city,
+          postcode: f.properties.postcode,
+          context: f.properties.context,
+        }))
+      )
+    } catch { setAddressSuggestions([]) }
+  }
+
+  const selectAddress = (addr: { label: string }) => {
+    set('address', addr.label)
+    setAddressSuggestions([])
+  }
+
   const handleSubmit = async () => {
     const e: Record<string, string> = {}
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Email invalide'
     if (!form.bizName.trim()) e.bizName = 'Requis'
+    if (!form.address.trim()) e.address = 'Requis'
     if (!form.password || form.password.length < 8) e.password = 'Min. 8 caractères'
     setErrors(e)
     if (Object.keys(e).length > 0) {
@@ -92,6 +116,7 @@ function InscrisRestoPage() {
         body: JSON.stringify({
           email: form.email.trim(),
           bizName: form.bizName.trim(),
+          address: form.address.trim(),
           password: form.password,
           referralCode: referralCode.trim() || undefined,
           locale: 'fr',
@@ -296,6 +321,26 @@ function InscrisRestoPage() {
               <input value={form.bizName} onChange={e => set('bizName', e.target.value)} placeholder="Le Café des Amis"
                 className={inputCls} style={inputStyle} />
               {errors.bizName && <p className="font-dm text-[#E8471A] text-[11px] mt-1">{errors.bizName}</p>}
+            </div>
+
+            <div data-e={errors.address ? '' : undefined} className="relative">
+              <label className="font-dm text-[#555] text-[11px] font-semibold uppercase tracking-[0.06em] block mb-1.5">Adresse du restaurant <span className="text-[#E8471A]">*</span></label>
+              <input value={form.address} onChange={e => searchAddress(e.target.value)} placeholder="12 Rue de Rivoli, Paris"
+                autoComplete="off"
+                className={inputCls} style={inputStyle} />
+              {addressSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl overflow-hidden" style={{ background: '#fff', border: '1px solid #d4d4d4', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+                  {addressSuggestions.map((s, i) => (
+                    <button key={i} type="button" onClick={() => selectAddress(s)}
+                      className="font-dm w-full text-left px-4 py-3 text-[13px] text-[#1a1a1a] hover:bg-[#f5f5f5] cursor-pointer transition-colors block"
+                      style={{ background: 'none', border: 'none', borderBottom: i < addressSuggestions.length - 1 ? '1px solid #eee' : 'none' }}>
+                      <span className="font-semibold">{s.label}</span>
+                      <span className="text-[#888] text-[11px] block mt-0.5">{s.context}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {errors.address && <p className="font-dm text-[#E8471A] text-[11px] mt-1">{errors.address}</p>}
             </div>
 
             <div data-e={errors.password ? '' : undefined}>

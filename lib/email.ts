@@ -2,62 +2,65 @@ const BREVO_API_KEY = process.env.BREVO_API_KEY!
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'contact@2960agency.com'
 const FROM_EMAIL   = 'contact@2960agency.com'
 const FROM_NAME    = '2960 Agency'
+const APP_URL      = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
 
-function fmt(val: unknown): string {
-  if (Array.isArray(val)) return val.join(', ')
-  if (val === null || val === undefined || val === '') return '—'
-  return String(val)
-}
+// ═══════════════════════════════════════════════════════════
+//  TEMPLATE BUILDERS
+//  Palette: bg #EFEFEF · card #fff · prune #6D0040 · coral #FF6339 · text #1A1A1A
+// ═══════════════════════════════════════════════════════════
 
-function buildHtml(title: string, rows: [string, unknown][]): string {
-  const rowsHtml = rows.map(([label, value]) => `
-    <tr>
-      <td style="padding:8px 12px;font-weight:600;color:#8a8580;font-size:13px;white-space:nowrap;vertical-align:top;border-bottom:1px solid #1f1d1a;">${label}</td>
-      <td style="padding:8px 12px;color:#e8e4dc;font-size:13px;border-bottom:1px solid #1f1d1a;">${fmt(value)}</td>
-    </tr>`).join('')
-
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<div style="max-width:660px;margin:40px auto;padding:0 20px;">
-  <div style="margin-bottom:28px;">
-    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
+function buildEmail(greeting: string, bodyHtml: string, ctaLabel: string | null, ctaUrl: string | null, isMarketing = true): string {
+  const ctaBlock = ctaLabel && ctaUrl ? `
+      <div style="margin:28px 0 0;text-align:center;">
+        <a href="${ctaUrl}"
+           style="display:inline-block;background:#FF6339;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">
+          ${ctaLabel} →
+        </a>
+      </div>` : ''
+  const unsub = isMarketing ? `
+      <p style="color:#aaa;font-size:10px;margin:12px 0 0;">
+        <a href="${APP_URL}/unsubscribe" style="color:#aaa;text-decoration:underline;">Se désabonner</a> — tu ne recevras plus ces mails.
+      </p>` : ''
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#EFEFEF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:460px;margin:0 auto;padding:40px 16px;">
+  <div style="margin-bottom:24px;text-align:center;">
+    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#6D0040;">2960 AGENCY</span>
   </div>
-  <h1 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 6px;">${title}</h1>
-  <p style="color:#4a4744;font-size:12px;margin:0 0 28px;">${new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}</p>
-  <table style="width:100%;border-collapse:collapse;background:#191714;border-radius:12px;overflow:hidden;">${rowsHtml}</table>
-  <p style="color:#2a2825;font-size:11px;margin-top:28px;">2960 Agency — notification automatique</p>
+  <div style="background:#fff;border-radius:16px;padding:36px 32px;">
+    <p style="color:#1A1A1A;font-size:15px;margin:0 0 20px;line-height:1.6;">${greeting}</p>
+    ${bodyHtml}
+    ${ctaBlock}
+  </div>
+  <div style="text-align:center;margin-top:24px;">
+    <p style="color:#999;font-size:11px;margin:0;">2960 Agency</p>${unsub}
+  </div>
 </div></body></html>`
 }
 
-function buildDripEmail(firstName: string, body: string, extra: string | null, ctaLabel: string, ctaUrl: string): string {
-  const bodyHtml = body.split('\n').map(line => line.trim()).filter(Boolean).map(line =>
-    line.startsWith('•') ? `<li style="margin:4px 0;">${line.slice(1).trim()}</li>` : `<p style="color:#c8c3b8;font-size:15px;margin:0 0 16px;line-height:1.6;">${line}</p>`
-  )
-  const hasListItems = bodyHtml.some(h => h.startsWith('<li'))
-  const bodyContent = hasListItems
-    ? bodyHtml.map(h => h.startsWith('<li') ? h : h).join('').replace(/<\/p><li/g, '</p><ul style="color:#c8c3b8;font-size:14px;padding-left:20px;margin:0 0 16px;line-height:1.8;"><li').replace(/<\/li><p/g, '</li></ul><p')
-    : bodyHtml.join('')
-  // Fix unclosed ul
-  const finalBody = bodyContent.includes('<ul') && !bodyContent.includes('</ul>') ? bodyContent + '</ul>' : bodyContent
-
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<div style="max-width:560px;margin:40px auto;padding:0 20px;">
-  <div style="margin-bottom:32px;">
-    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
-  </div>
-  <p style="color:#c8c3b8;font-size:15px;margin:0 0 24px;line-height:1.6;">${firstName},</p>
-  ${finalBody}
-  ${extra ? `<p style="color:#8a8580;font-size:14px;margin:0 0 24px;line-height:1.6;">${extra}</p>` : ''}
-  <div style="margin:28px 0;">
-    <a href="${ctaUrl}"
-       style="display:inline-block;background:#E8471A;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
-      ${ctaLabel} →
-    </a>
-  </div>
-  <p style="color:#2a2825;font-size:11px;margin-top:40px;">2960</p>
-</div></body></html>`
+function p(text: string): string {
+  return `<p style="color:#1A1A1A;font-size:15px;margin:0 0 16px;line-height:1.7;">${text}</p>`
 }
+
+function pMuted(text: string): string {
+  return `<p style="color:#666;font-size:14px;margin:0 0 16px;line-height:1.6;">${text}</p>`
+}
+
+function dash(text: string): string {
+  return `<p style="color:#1A1A1A;font-size:14px;margin:0 0 8px;line-height:1.6;padding-left:12px;">— ${text}</p>`
+}
+
+function spacer(): string {
+  return '<div style="height:8px;"></div>'
+}
+
+function hl(text: string): string {
+  return `<span style="color:#6D0040;font-weight:600;">${text}</span>`
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SEND HELPERS
+// ═══════════════════════════════════════════════════════════
 
 async function sendToUser(email: string, subject: string, htmlContent: string) {
   try {
@@ -71,18 +74,13 @@ async function sendToUser(email: string, subject: string, htmlContent: string) {
         htmlContent,
       }),
     })
-  } catch (e) {
-    console.error('Drip email failed:', e)
-  }
+  } catch (e) { console.error('Email failed:', e) }
 }
 
 async function sendEmail(subject: string, htmlContent: string) {
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'api-key': BREVO_API_KEY,
-    },
+    headers: { 'Content-Type': 'application/json', 'api-key': BREVO_API_KEY },
     body: JSON.stringify({
       sender: { name: FROM_NAME, email: FROM_EMAIL },
       to: [{ email: NOTIFY_EMAIL }],
@@ -90,11 +88,37 @@ async function sendEmail(subject: string, htmlContent: string) {
       htmlContent,
     }),
   })
-
   if (!res.ok) {
     const err = await res.text()
     console.error('Brevo error:', err)
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ADMIN NOTIFICATIONS (internal, dark theme)
+// ═══════════════════════════════════════════════════════════
+
+function fmt(val: unknown): string {
+  if (Array.isArray(val)) return val.join(', ')
+  if (val === null || val === undefined || val === '') return '—'
+  return String(val)
+}
+
+function buildAdminHtml(title: string, rows: [string, unknown][]): string {
+  const rowsHtml = rows.map(([label, value]) => `
+    <tr>
+      <td style="padding:8px 12px;font-weight:600;color:#8a8580;font-size:13px;white-space:nowrap;vertical-align:top;border-bottom:1px solid #1f1d1a;">${label}</td>
+      <td style="padding:8px 12px;color:#e8e4dc;font-size:13px;border-bottom:1px solid #1f1d1a;">${fmt(value)}</td>
+    </tr>`).join('')
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:660px;margin:40px auto;padding:0 20px;">
+  <div style="margin-bottom:28px;"><span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span></div>
+  <h1 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 6px;">${title}</h1>
+  <p style="color:#4a4744;font-size:12px;margin:0 0 28px;">${new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}</p>
+  <table style="width:100%;border-collapse:collapse;background:#191714;border-radius:12px;overflow:hidden;">${rowsHtml}</table>
+  <p style="color:#2a2825;font-size:11px;margin-top:28px;">2960 Agency — notification automatique</p>
+</div></body></html>`
 }
 
 export async function sendCreatorNotification(d: Record<string, unknown>) {
@@ -115,17 +139,13 @@ export async function sendCreatorNotification(d: Record<string, unknown>) {
     ['Note contenu', d.content_note],
   ]
   try {
-    await sendEmail(
-      `Nouveau créateur — ${d.first_name} ${d.last_name} (@${d.tiktok_username})`,
-      buildHtml('Nouvelle candidature créateur', rows)
-    )
+    await sendEmail(`Nouveau créateur — ${d.first_name} ${d.last_name} (@${d.tiktok_username})`, buildAdminHtml('Nouvelle candidature créateur', rows))
   } catch (e) { console.error('Creator email failed:', e) }
 }
 
 export async function sendBusinessNotification(d: Record<string, unknown>) {
   const rows: [string, unknown][] = [
     ['Code ambassadeur', d.referred_by_ambassador_code || '—'],
-    ['Prix annuel souhaité', d.annual_subscription_price ? `${d.annual_subscription_price}€` : '—'],
     ['Établissement', d.business_name], ['Contact', d.owner_name],
     ['Email', d.email], ['Téléphone', d.phone],
     ['Instagram', d.instagram_username], ['TikTok', d.tiktok_username], ['Site web', d.website],
@@ -140,698 +160,449 @@ export async function sendBusinessNotification(d: Record<string, unknown>) {
     ['Meilleurs jours', d.best_days], ['Créneaux', d.best_times], ['Source', d.heard_about],
   ]
   try {
-    await sendEmail(
-      `Nouveau restaurant — ${d.business_name} (${d.city})`,
-      buildHtml('Nouvelle candidature restaurant', rows)
-    )
+    await sendEmail(`Nouveau restaurant — ${d.business_name} (${d.city})`, buildAdminHtml('Nouvelle candidature restaurant', rows))
   } catch (e) { console.error('Business email failed:', e) }
 }
 
-// NEW: Booking confirmation emails
-export async function sendBookingConfirmation(booking: {
-  creatorName: string
-  creatorEmail: string
-  creatorPhone: string
-  creatorTiktok: string
-  restaurantName: string
-  restaurantAddress: string
-  restaurantCity: string
-  restaurantEmail: string | null
-  restaurantOwner: string | null
-  conversationUrl: string | null
-  bookingDate: string
-  timeSlot: string
-  offerDescription: string
+// ═══════════════════════════════════════════════════════════
+//  CRÉATEUR — SÉQUENCE (voix "tu")
+// ═══════════════════════════════════════════════════════════
+
+// C0 — Bienvenue (immédiat après validation admin)
+export async function sendCreatorC0(creator: { firstName: string; email: string }) {
+  const body = p(`C'est validé : tu fais partie des créateurs 2960.`) +
+    p(`Ici, des restos t'ouvrent leur table, tu y vas (tu peux emmener tes potes), tu fais ton contenu, tu le postes. Ton repas est offert.`) +
+    p(`Une chose pour bien démarrer : mets tes 2 meilleures vidéos sur ton profil. C'est ce que les restos regardent en premier — un beau profil, c'est toi qui passes devant.`)
+  const html = buildEmail(`${creator.firstName}, c'est validé : tu fais partie des créateurs 2960.`, body, 'Compléter mon profil', `${APP_URL}/creator/dashboard`)
+  await sendToUser(creator.email, `Bienvenue chez 2960, ${creator.firstName} 🎬`, html)
+}
+
+// C1 — Première action (J+1 si offre_vue=0)
+export async function sendCreatorC1(creator: { firstName: string; email: string }) {
+  const body = p(`On te prépare des invitations qui collent à ton style.`) +
+    p(`En attendant, le truc qui te fait passer devant quand une table s'ouvre : mets tes 2 meilleures vidéos sur ton profil — c'est ce que les restos regardent en premier.`)
+  const html = buildEmail(`${creator.firstName},`, body, 'Peaufiner mon profil', `${APP_URL}/creator/dashboard`)
+  await sendToUser(creator.email, 'Pendant qu\'on te trouve la bonne table…', html)
+}
+
+// C-INVIT — Invitation (cœur de l'activation)
+export async function sendCreatorInvitation(creator: {
+  firstName: string; email: string;
+  restoName: string; quartier: string;
+  maxPeople: number; netPrime: number;
 }) {
-  // Email to creator
-  const creatorHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<div style="max-width:660px;margin:40px auto;padding:0 20px;">
-  <div style="margin-bottom:28px;">
-    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
-  </div>
-  <h1 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 12px;">✅ Réservation confirmée !</h1>
-  <p style="color:#c8c3b8;font-size:15px;margin:0 0 28px;line-height:1.6;">
-    Bonjour ${booking.creatorName},<br><br>
-    Ta collab avec <strong style="color:#E8471A;">${booking.restaurantName}</strong> est confirmée !
-  </p>
+  const x = Math.max(1, creator.maxPeople - 2)
+  const y = creator.maxPeople - 1
+  const potesLine = creator.maxPeople >= 3
+    ? dash(`Repas offert pour toi — emmène ${x} à ${y} pote${y > 1 ? 's' : ''}, une table animée fait un meilleur contenu`)
+    : dash('Repas offert pour toi')
+  const primeLine = creator.netPrime > 0
+    ? dash(`Si ta vidéo performe, tu peux toucher jusqu'à ${hl(`${creator.netPrime}€`)}`)
+    : ''
+  const body = potesLine + primeLine +
+    dash('Tu choisis ton créneau, tu postes ta vidéo sous 5 jours')
+  const quartierSuffix = creator.quartier ? ` (${creator.quartier})` : ''
+  const html = buildEmail(
+    `${creator.firstName}, ${hl(creator.restoName)}${quartierSuffix} aimerait te recevoir.`,
+    body, 'Voir et réserver (1 clic)', `${APP_URL}/creator/dashboard`,
+  )
+  await sendToUser(creator.email, `${creator.restoName} aimerait te recevoir 🍝`, html)
+}
 
-  <div style="background:#191714;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid #2a2825;">
-    <div style="margin-bottom:16px;">
-      <div style="color:#8a8580;font-size:12px;margin-bottom:4px;">📍 Restaurant</div>
-      <div style="color:#fff;font-size:15px;font-weight:600;">${booking.restaurantName}</div>
-      <div style="color:#c8c3b8;font-size:13px;">${booking.restaurantAddress}, ${booking.restaurantCity}</div>
-    </div>
-    <div style="margin-bottom:16px;">
-      <div style="color:#8a8580;font-size:12px;margin-bottom:4px;">📅 Date & Heure</div>
-      <div style="color:#fff;font-size:15px;font-weight:600;">${booking.bookingDate}</div>
-      <div style="color:#c8c3b8;font-size:13px;">${booking.timeSlot}</div>
-    </div>
-    <div>
-      <div style="color:#8a8580;font-size:12px;margin-bottom:4px;">🎁 Ce que tu reçois</div>
-      <div style="color:#c8c3b8;font-size:14px;">${booking.offerDescription}</div>
-    </div>
-  </div>
+// C-RECONF — Reconfirme ta venue (72h avant)
+export async function sendCreatorReconf(data: {
+  firstName: string; email: string;
+  restoName: string; date: string; heure: string; maxPeople: number;
+  reconfirmUrl: string;
+}) {
+  const body = p(`Ta collab chez ${hl(data.restoName)} c'est ${data.date} à ${data.heure}.`) +
+    p(`Confirme que tu viens (sinon la table est libérée automatiquement à 24h) :`) +
+    spacer() +
+    (data.maxPeople >= 3
+      ? pMuted(`Tu emmènes du monde ? ${data.restoName} accepte jusqu'à ${data.maxPeople} personnes — plus la table est vivante, meilleur est le contenu.`)
+      : '')
+  const html = buildEmail(`${data.firstName},`, body, 'Je confirme ma venue', data.reconfirmUrl, false)
+  await sendToUser(data.email, `Ta collab chez ${data.restoName} approche — confirme ta venue`, html)
+}
 
-  <div style="background:rgba(232,71,26,0.1);border:1px solid rgba(232,71,26,0.2);border-radius:12px;padding:20px;margin-bottom:28px;">
-    <p style="color:#E8471A;font-size:13px;font-weight:600;margin:0 0 8px;">📌 Rappel important</p>
-    <p style="color:#c8c3b8;font-size:13px;margin:0;line-height:1.6;">
-      • Arrive à l'heure<br>
-      • Mentionne 2960 Agency en arrivant<br>
-      • Crée du contenu authentique et engageant<br>
-      • Poste selon les termes convenus
-    </p>
-  </div>
+// C-RDV — C'est demain (J-1)
+export async function sendCreatorRdv(data: {
+  firstName: string; email: string;
+  restoName: string; heure: string; adresse: string;
+}) {
+  const body = p(`Demain ${data.heure} chez ${hl(data.restoName)}, ${data.adresse}.`) +
+    p('La checklist pour un contenu qui passe la validation :') +
+    dash('filme sur place') +
+    dash('montre le lieu + un plat') +
+    dash('poste en public et garde la vidéo en ligne au moins 12 mois') +
+    spacer() +
+    pMuted('Profite, et régale-toi. Le reste est simple.')
+  const html = buildEmail(`${data.firstName},`, body, null, null, false)
+  await sendToUser(data.email, `Demain : ta collab chez ${data.restoName} 🎬`, html)
+}
 
-  <p style="color:#8a8580;font-size:13px;margin-bottom:6px;">Des questions ?</p>
-  <p style="color:#c8c3b8;font-size:13px;margin:0;">Contacte-nous : <a href="mailto:contact@2960agency.com" style="color:#E8471A;text-decoration:none;">contact@2960agency.com</a></p>
+// C-LIEN — Poste ton lien (J+1, J+3, J+5)
+export async function sendCreatorLien(data: {
+  firstName: string; email: string;
+  restoName: string; deadlineDate: string; dayNum: 1 | 3 | 5;
+}) {
+  let subject: string
+  let bodyText: string
+  let extraText: string
 
-  <p style="color:#2a2825;font-size:11px;margin-top:32px;">2960 Agency — Bonne collab ! 🚀</p>
-</div></body></html>`
+  if (data.dayNum === 1) {
+    subject = `Alors, c'était comment chez ${data.restoName} ? 🍴`
+    bodyText = `J'espère que tu t'es régalé chez ${hl(data.restoName)} !`
+    extraText = `Dès que ta vidéo est en ligne, colle le lien dans ton espace — c'est ce qui valide ta collab et te fait gagner tes points 2960.`
+  } else if (data.dayNum === 3) {
+    subject = `Ton lien chez ${data.restoName} — il reste 2 jours`
+    bodyText = `Ta vidéo chez ${hl(data.restoName)} n'a plus que 2 jours pour être validée.`
+    extraText = `Colle le lien dans ton espace et ta collab est bouclée — tes points tombent dans la foulée.`
+  } else {
+    subject = `Dernier jour pour valider ta collab chez ${data.restoName}`
+    bodyText = `C'est le dernier jour pour valider ta collab chez ${hl(data.restoName)}.`
+    extraText = `Il te reste à coller le lien de ta vidéo dans ton espace — c'est rapide, et ça boucle tout (collab validée + points).`
+  }
 
-  // Email to Yara
-  const yaraRows: [string, unknown][] = [
-    ['Créateur', booking.creatorName],
-    ['TikTok', booking.creatorTiktok],
-    ['Email', booking.creatorEmail],
-    ['Téléphone', booking.creatorPhone],
-    ['Restaurant', booking.restaurantName],
-    ['Adresse', `${booking.restaurantAddress}, ${booking.restaurantCity}`],
-    ['Date', booking.bookingDate],
-    ['Créneau', booking.timeSlot],
-    ['Offre', booking.offerDescription],
+  const body = p(bodyText) + p(extraText) +
+    (data.dayNum === 1 ? pMuted(`Tu as jusqu'au ${data.deadlineDate}.`) : '')
+  const html = buildEmail(`${data.firstName},`, body, 'Ajouter le lien de ma vidéo', `${APP_URL}/creator/dashboard`)
+  await sendToUser(data.email, subject, html)
+}
+
+// C-WB1 — At risk (J+7 sans activité)
+export async function sendCreatorWB1(creator: {
+  firstName: string; email: string;
+  restoName: string; quartier: string; netPrime: number;
+}) {
+  const primeLine = creator.netPrime > 0
+    ? ` Jusqu'à ${creator.netPrime}€ si ta vidéo performe.`
+    : ''
+  const body = p(`On a une table qui colle à ton style : ${hl(creator.restoName)}, ${creator.quartier}.`) +
+    p(`Repas offert, emmène tes potes. Tu n'as rien à chercher — c'est déjà prêt, tu valides en 1 clic.${primeLine}`)
+  const html = buildEmail(`${creator.firstName},`, body, 'Voir ma table', `${APP_URL}/creator/dashboard`)
+  await sendToUser(creator.email, `On t'a trouvé une table, ${creator.firstName}`, html)
+}
+
+// C-WB2 — Dormant (J+21 sans connexion)
+export async function sendCreatorWB2(creator: {
+  firstName: string; email: string;
+  restoName: string; quartier: string;
+}) {
+  const body = p(`Ça fait un moment ! On ne te lâche pas.`) +
+    p(`Une nouvelle adresse vient d'ouvrir près de chez toi : ${hl(creator.restoName)}. Si c'est le bon moment, ta place t'attend.`)
+  const html = buildEmail(`${creator.firstName},`, body, 'Je jette un œil', `${APP_URL}/creator/dashboard`)
+  await sendToUser(creator.email, `On pense à toi — une nouvelle table près de ${creator.quartier}`, html)
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RESTAURANT — SÉQUENCE (voix "vous")
+// ═══════════════════════════════════════════════════════════
+
+// R0/RH1 — Bienvenue + publier (H+1 ou immédiat après acceptation)
+export async function sendRestoR0(resto: { restoName: string; email: string }) {
+  const body = p(`Votre compte est actif, et vos 3 collaborations offertes vous attendent (à utiliser sous 30 jours).`) +
+    p(`Pour les activer, une seule étape : publier votre offre. On l'a pré-remplie pour vous — il vous reste à vérifier et à cliquer sur Publier.`) +
+    spacer() +
+    pMuted('Une fois en ligne, des créateurs vérifiés peuvent réserver et venir créer du contenu chez vous.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Publier mon offre (2 min)', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'Bienvenue sur 2960 — publiez votre 1ère offre en 2 min', html)
+}
+
+// RJ1 — Relance publication (J+1)
+export async function sendRestoDripRJ1(resto: { restoName: string; email: string }) {
+  const body = p(`Votre compte est prêt, mais votre offre n'est pas encore en ligne — vos 3 collaborations offertes restent en pause tant qu'elle ne l'est pas.`) +
+    p('L\'offre est déjà pré-remplie. 2 minutes suffisent :')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Mettre mon offre en ligne', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'Vos 3 collaborations offertes ne tournent pas encore', html)
+}
+
+// RJ3 — Pourquoi ça vaut le coup (J+3)
+export async function sendRestoDripRJ3(resto: { restoName: string; email: string }) {
+  const body = p('Ce que des créateurs vérifiés font concrètement pour vous :') +
+    dash('vos plats apparaissent dans les recherches TikTok de votre quartier et de votre cuisine, sans que vous ayez de compte à gérer') +
+    dash('du contenu authentique produit pour vous, que vous pouvez réutiliser (licence d\'usage)') +
+    dash('chaque collaboration vous montre quel angle et quel plat résonnent le mieux') +
+    spacer() +
+    p('Ce n\'est pas un coup unique : c\'est une présence qui se construit dans la durée. Et vos 3 premières collaborations sont offertes.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Publier mon offre', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'Comment 2960 travaille pour votre visibilité', html)
+}
+
+// RJ6 — Dernier rappel (J+6)
+export async function sendRestoDripRJ6(resto: { restoName: string; email: string }) {
+  const body = p('Vos 3 collaborations offertes vous attendent toujours. Il suffit de publier votre offre (déjà pré-remplie) pour les activer — avant la fin de votre fenêtre de 30 jours.') +
+    spacer() +
+    pMuted('Une question avant de publier ? Répondez à ce mail.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Activer mes collaborations', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'On garde vos 3 collaborations offertes au chaud', html)
+}
+
+// R-RESA — Un créateur a réservé (transactionnel)
+export async function sendRestoResa(data: {
+  restoName: string; email: string;
+  creatorName: string; date: string; heure: string; numPeople: number;
+}) {
+  const body = p(`${hl(data.creatorName)} a réservé pour ${data.date} à ${data.heure} — ${data.numPeople} personne${data.numPeople > 1 ? 's' : ''}.`) +
+    p('À préparer : un bon accueil, et toute information utile à signaler (allergies, plats indisponibles, table filmable). Le créateur publiera sa vidéo sous 5 jours.')
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Voir la réservation', `${APP_URL}/restaurant/dashboard?tab=collabs`, false)
+  await sendToUser(data.email, `Nouvelle réservation : ${data.creatorName} vient le ${data.date}`, html)
+}
+
+// R-NUDGE-AUTO — Passez en auto (résa en attente >24h)
+export async function sendRestoNudgeAuto(data: { restoName: string; email: string; creatorName: string }) {
+  const body = p(`${hl(data.creatorName)} attend votre validation depuis hier. Les créateurs sérieux passent vite à l'offre suivante s'ils n'ont pas de réponse.`) +
+    p('L\'acceptation automatique vous évite ça : les créateurs 2960 sont déjà vérifiés en amont, vous gagnez du temps, et vous revenez en manuel en 1 clic quand vous le souhaitez.')
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Activer l\'acceptation auto', `${APP_URL}/restaurant/dashboard`, false)
+  await sendToUser(data.email, 'Une réservation attend votre réponse depuis 24h', html)
+}
+
+// R-VIDEO — Vidéo en ligne + licence (transactionnel)
+export async function sendRestoVideo(data: {
+  restoName: string; email: string;
+  creatorName: string; postLink: string;
+}) {
+  const body = p(`${hl(data.creatorName)} a publié votre vidéo : <a href="${data.postLink}" style="color:#FF6339;text-decoration:underline;">voir la vidéo</a>. Elle restera en ligne au moins 12 mois — votre repas offert continue de travailler bien après la collaboration.`) +
+    p('Vous voulez l\'utiliser sur vos propres canaux (site, réseaux, écrans en salle, publicité) ? La licence d\'usage vous en donne le droit :') +
+    dash('150€ pour 6 mois') +
+    dash('200€ pour 12 mois')
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Obtenir la licence d\'usage', `${APP_URL}/restaurant/dashboard`, false)
+  await sendToUser(data.email, 'Votre vidéo est en ligne 🎬 (et elle peut travailler plus longtemps)', html)
+}
+
+// RP2 — Quelques réglages (J+2 sans résa)
+export async function sendRestoRP2(resto: { restoName: string; email: string; isManual: boolean; hasPrime: boolean }) {
+  let items = dash('ajoutez 1-2 photos appétissantes de vos plats (c\'est ce qui déclenche l\'envie)') +
+    dash('ouvrez quelques créneaux en soirée et le week-end (les plus demandés)')
+  if (resto.isManual) items += dash('passez en acceptation automatique : les créateurs réservent là où c\'est instantané')
+  if (!resto.hasPrime) items += dash('ajoutez une prime de viralité : les créateurs sont plus attirés par les offres qui en proposent')
+  const body = p('Votre offre est en ligne — voici ce qui fait venir les créateurs plus vite :') + items
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Ajuster mon offre', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'Quelques réglages pour attirer les premiers créateurs', html)
+}
+
+// RP5 — Prime + créneaux (J+5 sans résa)
+export async function sendRestoRP5(resto: { restoName: string; email: string }) {
+  const body = p('Vous n\'avez pas encore reçu de réservation. Deux leviers règlent ça la plupart du temps :') +
+    p(`<strong style="color:#1A1A1A;">1. Ajoutez une prime de viralité.</strong> Les créateurs candidatent en priorité sur les offres qui en proposent. On conseille de démarrer à 50 000 vues → 200€ : un seuil assez haut pour ne se déclencher que si une vidéo performe vraiment.`) +
+    p(`<strong style="color:#1A1A1A;">2. Ouvrez 2-3 créneaux de plus</strong> (soirées, week-end) et augmentez le nombre de créateurs par semaine.`) +
+    spacer() +
+    pMuted('Une question pour configurer ? Répondez à ce mail.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Ajuster mon offre', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, '2 réglages pour vos premières réservations', html)
+}
+
+// R-WB — Resto inactif (J+21)
+export async function sendRestoWB(resto: { restoName: string; email: string }) {
+  const body = p('Votre offre est en pause et vos collaborations offertes ne sont pas encore utilisées. Le catalogue créateurs a évolué depuis votre inscription — il y a sans doute un bon profil pour vous aujourd\'hui.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Réactiver mon offre', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'Vos collaborations offertes vous attendent toujours', html)
+}
+
+// R-CONV — Essai → payant (3e collab livrée)
+export async function sendRestoConv(resto: { restoName: string; email: string; videoCount: number }) {
+  const body = p(`Vos 3 collaborations offertes sont terminées : ${hl(`${resto.videoCount} vidéos`)} publiées, en ligne au moins 12 mois, qui travaillent pour votre visibilité.`) +
+    p('Pour continuer sans interruption, voici les formules :') +
+    dash('Active (69€/mois) : 4 collaborations incluses') +
+    dash('Pro (119€/mois) : collaborations illimitées + invitations directes + directives aux créateurs') +
+    spacer() +
+    pMuted('Pas prêt ? Vos réservations sont simplement en pause — aucun débit, rien de caché.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Choisir ma formule', `${APP_URL}/restaurant/dashboard?tab=settings`)
+  await sendToUser(resto.email, `Vos 3 collaborations offertes ont produit ${resto.videoCount} vidéos`, html)
+}
+
+// R-ANNUL — Annulation (transactionnel)
+export async function sendRestoAnnul(data: { restoName: string; email: string; date: string }) {
+  const body = p(`La réservation du ${data.date} vient d'être annulée. Votre créneau est de nouveau libre — un autre créateur peut le réserver.`)
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Voir mes créneaux', `${APP_URL}/restaurant/dashboard?tab=collabs`, false)
+  await sendToUser(data.email, 'Réservation annulée — votre créneau est de nouveau libre', html)
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TRANSACTIONAL (shared)
+// ═══════════════════════════════════════════════════════════
+
+// Booking confirmation → creator
+export async function sendCreatorBookingConfirm(data: {
+  creatorName: string; creatorEmail: string;
+  restaurantName: string; restaurantAddress: string; restaurantCity: string;
+  bookingDate: string; timeSlot: string; offerDescription: string;
+}) {
+  const body = p(`Ta collab avec ${hl(data.restaurantName)} est confirmée !`) +
+    `<div style="background:#EFEFEF;border-radius:12px;padding:20px;margin:16px 0;">
+      <div style="margin-bottom:12px;"><span style="color:#666;font-size:12px;">📍 Restaurant</span><br><strong style="color:#1A1A1A;font-size:15px;">${data.restaurantName}</strong><br><span style="color:#666;font-size:13px;">${data.restaurantAddress}, ${data.restaurantCity}</span></div>
+      <div style="margin-bottom:12px;"><span style="color:#666;font-size:12px;">📅 Date & Heure</span><br><strong style="color:#1A1A1A;font-size:15px;">${data.bookingDate}</strong><br><span style="color:#666;font-size:13px;">${data.timeSlot}</span></div>
+      <div><span style="color:#666;font-size:12px;">🎁 Ce que tu reçois</span><br><span style="color:#1A1A1A;font-size:14px;">${data.offerDescription}</span></div>
+    </div>` +
+    p('<strong>Rappel :</strong>') +
+    dash('Arrive à l\'heure') +
+    dash('Mentionne 2960 Agency en arrivant') +
+    dash('Crée du contenu authentique et engageant') +
+    dash('Poste selon les termes convenus')
+  const html = buildEmail(`Bonjour ${data.creatorName},`, body, null, null, false)
+  await sendToUser(data.creatorEmail, `✅ Collab confirmée — ${data.restaurantName}`, html)
+}
+
+// Booking confirmation → admin (Yara)
+export async function sendAdminBookingNotification(data: {
+  creatorName: string; creatorTiktok: string; creatorEmail: string; creatorPhone: string;
+  restaurantName: string; restaurantAddress: string;
+  bookingDate: string; timeSlot: string; offerDescription: string;
+}) {
+  const rows: [string, unknown][] = [
+    ['Créateur', data.creatorName], ['TikTok', data.creatorTiktok],
+    ['Email', data.creatorEmail], ['Téléphone', data.creatorPhone],
+    ['Restaurant', data.restaurantName], ['Adresse', data.restaurantAddress],
+    ['Date', data.bookingDate], ['Créneau', data.timeSlot], ['Offre', data.offerDescription],
   ]
-
-  try {
-    // Send to creator
-    await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': BREVO_API_KEY,
-      },
-      body: JSON.stringify({
-        sender: { name: FROM_NAME, email: FROM_EMAIL },
-        to: [{ email: booking.creatorEmail }],
-        subject: `✅ Collab confirmée — ${booking.restaurantName}`,
-        htmlContent: creatorHtml,
-      }),
-    })
-
-    // Send to Yara
-    await sendEmail(
-      `📅 Nouvelle réservation — ${booking.creatorName} → ${booking.restaurantName}`,
-      buildHtml('Nouvelle réservation', yaraRows)
-    )
-
-    // Send to restaurant
-    if (booking.restaurantEmail) {
-      const restoHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<div style="max-width:660px;margin:40px auto;padding:0 20px;">
-  <div style="margin-bottom:28px;">
-    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
-  </div>
-  <h1 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 12px;">📅 Un créateur arrive bientôt !</h1>
-  <p style="color:#c8c3b8;font-size:15px;margin:0 0 28px;line-height:1.6;">
-    Bonjour${booking.restaurantOwner ? ` ${booking.restaurantOwner}` : ''},<br><br>
-    Un créateur a réservé un créneau chez <strong style="color:#E8471A;">${booking.restaurantName}</strong>.
-  </p>
-
-  <div style="background:#191714;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid #2a2825;">
-    <div style="margin-bottom:16px;">
-      <div style="color:#8a8580;font-size:12px;margin-bottom:4px;">👤 Créateur</div>
-      <div style="color:#fff;font-size:15px;font-weight:600;">${booking.creatorName}</div>
-      <div style="color:#c8c3b8;font-size:13px;">${booking.creatorTiktok ? booking.creatorTiktok : ''}</div>
-    </div>
-    <div style="margin-bottom:16px;">
-      <div style="color:#8a8580;font-size:12px;margin-bottom:4px;">📅 Date & Heure</div>
-      <div style="color:#fff;font-size:15px;font-weight:600;">${booking.bookingDate}</div>
-      <div style="color:#c8c3b8;font-size:13px;">${booking.timeSlot}</div>
-    </div>
-    <div>
-      <div style="color:#8a8580;font-size:12px;margin-bottom:4px;">🎁 Ce qui a été convenu</div>
-      <div style="color:#c8c3b8;font-size:14px;">${booking.offerDescription}</div>
-    </div>
-  </div>
-
-  <div style="background:rgba(232,71,26,0.08);border:1px solid rgba(232,71,26,0.15);border-radius:12px;padding:20px;margin-bottom:28px;">
-    <p style="color:#E8471A;font-size:13px;font-weight:600;margin:0 0 8px;">📌 À préparer</p>
-    <p style="color:#c8c3b8;font-size:13px;margin:0;line-height:1.6;">
-      • Le créateur mentionnera 2960 Agency en arrivant<br>
-      • Préparez l'offre convenue (${booking.offerDescription})<br>
-      • Soyez accueillant — une bonne expérience = un meilleur contenu !
-    </p>
-  </div>
-
-  ${booking.conversationUrl ? `
-  <div style="text-align:center;margin-bottom:28px;">
-    <p style="color:#c8c3b8;font-size:13px;margin:0 0 12px;">Besoin de communiquer avec le créateur avant sa venue ?</p>
-    <a href="${booking.conversationUrl}"
-       style="display:inline-block;background:#E8471A;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
-      💬 Envoyer un message
-    </a>
-  </div>
-  ` : ''}
-
-  <p style="color:#8a8580;font-size:13px;margin-bottom:6px;">Des questions ?</p>
-  <p style="color:#c8c3b8;font-size:13px;margin:0;"><a href="mailto:contact@2960agency.com" style="color:#E8471A;text-decoration:none;">contact@2960agency.com</a></p>
-
-  <p style="color:#2a2825;font-size:11px;margin-top:32px;">2960 Agency — notification automatique</p>
-</div></body></html>`
-
-      await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': BREVO_API_KEY,
-        },
-        body: JSON.stringify({
-          sender: { name: FROM_NAME, email: FROM_EMAIL },
-          to: [{ email: booking.restaurantEmail }],
-          subject: `📅 Nouveau créateur — ${booking.creatorName} le ${booking.bookingDate}`,
-          htmlContent: restoHtml,
-        }),
-      })
-    }
-  } catch (e) {
-    console.error('Booking email failed:', e)
-  }
+  await sendEmail(`📅 Nouvelle réservation — ${data.creatorName} → ${data.restaurantName}`, buildAdminHtml('Nouvelle réservation', rows))
 }
 
-// NEW: Welcome email when creator account is created
-export async function sendCreatorWelcome(creator: {
-  firstName: string
-  email: string
-  ambassadorCode: string
-}) {
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<div style="max-width:660px;margin:40px auto;padding:0 20px;">
-  <div style="margin-bottom:28px;">
-    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
-  </div>
-  <h1 style="color:#fff;font-size:24px;font-weight:700;margin:0 0 12px;">Bienvenue chez 2960 Agency ! 🎉</h1>
-  <p style="color:#c8c3b8;font-size:15px;margin:0 0 28px;line-height:1.6;">
-    Salut ${creator.firstName},<br><br>
-    Merci pour ton inscription ! Nous examinons actuellement ton profil pour te matcher avec les meilleures opportunités de collabs.
-  </p>
-
-  <div style="background:#191714;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid #2a2825;">
-    <p style="color:#8a8580;font-size:13px;margin:0 0 12px;">📊 Statut de ton compte</p>
-    <div style="background:rgba(252,250,166,0.1);border:1px solid rgba(252,250,166,0.15);border-radius:8px;padding:14px;">
-      <p style="color:#fcfaa6;font-size:13px;margin:0;font-weight:600;">⏳ En cours de validation</p>
-    </div>
-    <p style="color:#8a8580;font-size:12px;margin:12px 0 0;">Nous te contacterons dès que ton compte sera validé.</p>
-  </div>
-
-  <div style="background:linear-gradient(135deg, rgba(232,71,26,0.1) 0%, rgba(217,79,42,0.05) 100%);border:1px solid rgba(232,71,26,0.2);border-radius:12px;padding:24px;margin-bottom:28px;">
-    <p style="color:#E8471A;font-size:14px;font-weight:700;margin:0 0 8px;">🎁 Ton code ambassadeur</p>
-    <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:16px;margin:12px 0 16px;border:1px solid rgba(232,71,26,0.1);">
-      <p style="color:#E8471A;font-size:28px;font-weight:700;text-align:center;margin:0;letter-spacing:0.15em;">${creator.ambassadorCode}</p>
-    </div>
-    <p style="color:#c8c3b8;font-size:13px;margin:0 0 12px;line-height:1.6;">
-      Partage ce code avec des restaurants ! Si 5 restaurants s'inscrivent avec ton code, tu gagnes <strong style="color:#E8471A;">100€</strong>.
-    </p>
-    <p style="color:#8a8580;font-size:12px;margin:0;">Le restaurant doit simplement entrer ton code lors de son inscription.</p>
-  </div>
-
-  <p style="color:#8a8580;font-size:13px;margin-bottom:6px;">À très bientôt,</p>
-  <p style="color:#c8c3b8;font-size:13px;margin:0;font-weight:600;">L'équipe 2960 Agency</p>
-
-  <p style="color:#2a2825;font-size:11px;margin-top:32px;">contact@2960agency.com</p>
-</div></body></html>`
-
-  try {
-    await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': BREVO_API_KEY,
-      },
-      body: JSON.stringify({
-        sender: { name: FROM_NAME, email: FROM_EMAIL },
-        to: [{ email: creator.email }],
-        subject: '🎉 Bienvenue chez 2960 Agency !',
-        htmlContent: html,
-      }),
-    })
-  } catch (e) {
-    console.error('Welcome email failed:', e)
-  }
+// Welcome creator (pre-validation, at signup)
+export async function sendCreatorWelcome(creator: { firstName: string; email: string; ambassadorCode: string }) {
+  const body = p('Merci pour ton inscription ! Nous examinons actuellement ton profil pour te matcher avec les meilleures opportunités de collabs.') +
+    `<div style="background:#EFEFEF;border-radius:12px;padding:20px;margin:16px 0;">
+      <p style="color:#666;font-size:13px;margin:0 0 8px;">📊 Statut de ton compte</p>
+      <div style="background:#FFF9E0;border:1px solid #F5E6A3;border-radius:8px;padding:12px;">
+        <p style="color:#8B6914;font-size:13px;margin:0;font-weight:600;">⏳ En cours de validation</p>
+      </div>
+      <p style="color:#666;font-size:12px;margin:10px 0 0;">Nous te contacterons dès que ton compte sera validé.</p>
+    </div>` +
+    `<div style="background:rgba(109,0,64,0.05);border:1px solid rgba(109,0,64,0.12);border-radius:12px;padding:20px;margin:16px 0;">
+      <p style="color:#6D0040;font-size:14px;font-weight:700;margin:0 0 8px;">🎁 Ton code ambassadeur</p>
+      <div style="background:#fff;border-radius:8px;padding:14px;margin:8px 0 12px;border:1px solid rgba(109,0,64,0.08);">
+        <p style="color:#6D0040;font-size:26px;font-weight:700;text-align:center;margin:0;letter-spacing:0.15em;">${creator.ambassadorCode}</p>
+      </div>
+      <p style="color:#1A1A1A;font-size:13px;margin:0 0 8px;line-height:1.6;">Partage ce code avec des restaurants ! Si 5 restaurants s'inscrivent avec ton code, tu gagnes ${hl('100€')}.</p>
+      <p style="color:#666;font-size:12px;margin:0;">Le restaurant doit simplement entrer ton code lors de son inscription.</p>
+    </div>`
+  const html = buildEmail(`Salut ${creator.firstName},`, body, null, null, false)
+  await sendToUser(creator.email, '🎉 Bienvenue chez 2960 Agency !', html)
 }
 
-// ═══════════════════════════════════════
-// C1 — Creator validated (immediate)
-// ═══════════════════════════════════════
-export async function sendCreatorValidation(creator: {
-  firstName: string
-  email: string
-}) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    creator.firstName,
-    'Profil validé. Tu as accès à la plateforme.',
-    `Sur 2960 : tu réserves un créneau dans un resto, tu viens avec qui tu veux, tu filmes, tu publies. Aucun frais. Certains restos ajoutent une prime si ta vidéo cartonne — tu la vois sur chaque offre.`,
-    'Réserver ma 1ère collab', `${appUrl}/creator/dashboard`,
-  )
-  await sendToUser(creator.email, 'Tu es accepté(e) sur 2960 ✓', html)
-}
-
-// C2 — J+1 if no booking
-export async function sendCreatorDripC2(creator: { firstName: string; email: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    creator.firstName,
-    'Les créneaux sont ouverts en ce moment — repas offert, contenu réel pour ton feed, et une prime possible si la vidéo performe.',
-    null,
-    'Voir les restaurants', `${appUrl}/creator/dashboard`,
-  )
-  await sendToUser(creator.email, 'Repas offert + contenu + potentiellement une prime', html)
-}
-
-// C3 — J+3 if no booking
-export async function sendCreatorDripC3(creator: { firstName: string; email: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    creator.firstName,
-    'Chaque collab sur 2960 te fait avancer dans les niveaux créateurs. Plus tu avances, plus tu débloques d\'avantages. Ça commence dès ta 1ère réservation confirmée.',
-    null,
-    'Réserver maintenant', `${appUrl}/creator/dashboard`,
-  )
-  await sendToUser(creator.email, 'Ta 1ère collab démarre tes points', html)
-}
-
-// C4 — J+7 if no booking
-export async function sendCreatorDripC4(creator: { firstName: string; email: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    creator.firstName,
-    'Repas offert, contenu pour ton feed, primes sur les vidéos qui performent. Ton profil est prêt. Il manque juste une réservation.',
-    'Si quelque chose bloque, réponds à cet email.',
-    'Accéder à la plateforme', `${appUrl}/creator/dashboard`,
-  )
-  await sendToUser(creator.email, 'Ton profil est validé — les créneaux sont là', html)
-}
-
-// C5 — J+10 (push Moteur B) — show a real restaurant
-export async function sendCreatorDripC5(creator: { firstName: string; email: string; restoName: string; maxGuests: number; maxPrime: number }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const primeText = creator.maxPrime > 0 ? `Et si ta vidéo perce, tu peux gagner jusqu'à ${creator.maxPrime}€ pour une seule vidéo.\n\n` : ''
-  const html = buildDripEmail(
-    creator.firstName,
-    `${creator.restoName} aimerait te faire découvrir sa cuisine.\n\nTu viens filmer ta vidéo, et tu peux emmener jusqu'à ${creator.maxGuests} pote${creator.maxGuests > 1 ? 's' : ''} avec toi.\n\n${primeText}Ta place t'attend.`,
-    null,
-    'Je réserve en 1 clic', `${appUrl}/creator/dashboard`,
-  )
-  await sendToUser(creator.email, `${creator.restoName} aimerait te recevoir cette semaine`, html)
-}
-
-// ═══════════════════════════════════════
-// R1 — Restaurant accepted (immediate)
-// ═══════════════════════════════════════
-export async function sendBusinessAccepted(business: {
-  businessName: string
-  ownerName: string
-  email: string
-}) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    business.ownerName,
-    `Ton compte est créé. Tes 3 premières collabs sont incluses — 30 jours pour les utiliser.
-
-Une collab = un créateur vient filmer chez toi, publie sur son compte. La vidéo reste indexée sur TikTok 12 mois. Ton seul coût : le repas le jour J.
-
-Pour que les créateurs te trouvent, publie ton offre maintenant. 5 minutes :
-• Nombre de personnes max par réservation
-• Tes créneaux dispo
-• Nombre de créateurs par semaine`,
-    null,
-    'Publier mon offre', `${appUrl}/restaurant/dashboard`,
-  )
-  await sendToUser(business.email, 'Bienvenue — tes 3 collabs gratuites t\'attendent', html)
-}
-
-// RH1 — H+1 after account creation, not published
-export async function sendRestoDripH1(resto: { ownerName: string; email: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    resto.ownerName,
-    'Ton espace est prêt. Ton offre est pré-remplie — vérifie les créneaux et publie. 3 minutes.',
-    null,
-    'Publier mon offre', `${appUrl}/restaurant/dashboard`,
-  )
-  await sendToUser(resto.email, 'Ton espace est prêt — publie en 3 min', html)
-}
-
-// RJ1 — J+1, not published
-export async function sendRestoDripJ1(resto: { ownerName: string; email: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    resto.ownerName,
-    'Ton offre est pré-remplie et attend d\'être publiée. Un clic et les créateurs peuvent te trouver.',
-    null,
-    'Publier mon offre', `${appUrl}/restaurant/dashboard`,
-  )
-  await sendToUser(resto.email, 'Un dernier pas pour recevoir des créateurs', html)
-}
-
-// RJ3 — J+3, not published
-export async function sendRestoDripJ3(resto: { ownerName: string; email: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    resto.ownerName,
-    'Ça fait 3 jours que ton compte est ouvert. Les créateurs sur 2960 cherchent des restos comme le tien — mais tant que ton offre n\'est pas publiée, ils ne te voient pas.',
-    null,
-    'Publier maintenant', `${appUrl}/restaurant/dashboard`,
-  )
-  await sendToUser(resto.email, 'Les créateurs ne te voient pas encore', html)
-}
-
-// RJ6 — J+6, not published
-export async function sendRestoDripJ6(resto: { ownerName: string; email: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    resto.ownerName,
-    `Tes 3 collabs offertes expirent dans 24 jours. Publie ton offre maintenant pour en profiter — 1 clic suffit.`,
-    'Si quelque chose bloque, réponds à cet email.',
-    'Activer mes collabs', `${appUrl}/restaurant/dashboard`,
-  )
-  await sendToUser(resto.email, 'Dernière chance : publie ton offre', html)
-}
-
-// RP2 — J+2 after publish, 0 bookings
-export async function sendRestoPublishedNoBookingsJ2(resto: { ownerName: string; email: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    resto.ownerName,
-    'Ton offre est en ligne depuis 2 jours mais aucun créateur n\'a encore réservé. Élargis tes créneaux pour augmenter tes chances — les soirées et week-ends fonctionnent le mieux.',
-    null,
-    'Modifier mes créneaux', `${appUrl}/restaurant/dashboard`,
-  )
-  await sendToUser(resto.email, 'Élargis tes créneaux pour plus de demande', html)
-}
-
-// RP5 — J+5 after publish, 0 bookings
-export async function sendRestoPublishedNoBookingsJ5(resto: { ownerName: string; email: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    resto.ownerName,
-    'Toujours 0 réservation. Quelques idées : ajoute des photos (ça multiplie les réservations par 3), élargis tes créneaux, ou active une prime de viralité pour attirer les meilleurs créateurs.',
-    'Si quelque chose bloque, réponds à cet email.',
-    'Optimiser mon offre', `${appUrl}/restaurant/dashboard`,
-  )
-  await sendToUser(resto.email, '0 réservation — 3 leviers pour débloquer', html)
-}
-
-// Booking cancelled — notify restaurant by email
-export async function sendBookingCancelledEmail(resto: { ownerName: string; email: string; creatorName: string; bookingDate: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    resto.ownerName,
-    `${resto.creatorName} a annulé sa réservation du ${resto.bookingDate}.\n\nLe créneau est à nouveau disponible pour d'autres créateurs.`,
-    null,
-    'Voir mes collabs', `${appUrl}/restaurant/dashboard?tab=collabs`,
-  )
-  await sendToUser(resto.email, `Réservation annulée — ${resto.creatorName}`, html)
-}
-
-// Moteur B push — suggest restaurant to creator
-export async function sendMoteurBPush(creator: { firstName: string; email: string; restoName: string; maxGuests: number; netPrime: number }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const primeText = creator.netPrime > 0 ? `Et si ta vidéo perce, tu peux gagner jusqu'à ${creator.netPrime}€ pour une seule vidéo.\n\n` : ''
-  const html = buildDripEmail(
-    creator.firstName,
-    `${creator.restoName} aimerait te faire découvrir sa cuisine.\n\nTu viens filmer ta vidéo, et tu peux emmener jusqu'à ${creator.maxGuests} pote${creator.maxGuests > 1 ? 's' : ''} avec toi.\n\n${primeText}Ta place t'attend.`,
-    null,
-    'Je réserve en 1 clic', `${appUrl}/creator/dashboard`,
-  )
-  await sendToUser(creator.email, `${creator.restoName} aimerait te recevoir cette semaine`, html)
-}
-
-// Nudge: manual restaurant with pending booking > 24h
-export async function sendNudgeAutoAccept(resto: { ownerName: string; email: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    resto.ownerName,
-    'Un créateur attend ta réponse depuis plus de 24h. Active l\'acceptation automatique — les critères de la plateforme filtrent déjà les créateurs pour toi. Tu gardes le contrôle et tu peux revenir au mode manuel en 1 clic.',
-    null,
-    'Activer l\'auto-accept', `${appUrl}/restaurant/dashboard`,
-  )
-  await sendToUser(resto.email, 'Une réservation attend ta réponse', html)
-}
-
-// DEPRECATED — kept for reference, replaced by RH1/RJ1/RJ3/RJ6
-export async function sendRestoDripR2(resto: { ownerName: string; email: string }) {
-  await sendRestoDripJ1(resto) // fallback
-}
-export async function sendRestoDripR3(resto: { ownerName: string; email: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2960agency.com'
-  const html = buildDripEmail(
-    resto.ownerName,
-    `Tes 3 collabs offertes expirent dans 23 jours.
-
-Chaque collab = une vidéo publiée sur TikTok ou Instagram, maintenue en ligne 12 mois. Le contenu tourne encore bien après que le créateur soit reparti — sans que tu gères quoi que ce soit.
-
-Pour les activer : ton offre doit être en ligne. 5 minutes.`,
-    null,
-    'Activer mes collabs', `${appUrl}/restaurant/dashboard`,
-  )
-  await sendToUser(resto.email, 'Il reste 23 jours pour tes 3 collabs', html)
-}
-
-// NEW: Email to restaurant when their application is rejected
-export async function sendBusinessRejected(business: {
-  businessName: string
-  ownerName: string
-  email: string
-}) {
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<div style="max-width:660px;margin:40px auto;padding:0 20px;">
-  <div style="margin-bottom:28px;">
-    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
-  </div>
-  <h1 style="color:#fff;font-size:24px;font-weight:700;margin:0 0 12px;">Merci pour votre candidature</h1>
-  <p style="color:#c8c3b8;font-size:15px;margin:0 0 28px;line-height:1.6;">
-    Bonjour ${business.ownerName},<br><br>
-    Nous vous remercions pour l'intérêt que vous portez à 2960 Agency. Après examen de votre candidature pour <strong style="color:#fff;">${business.businessName}</strong>, nous ne sommes malheureusement pas en mesure de vous intégrer à la plateforme pour le moment.
-  </p>
-
-  <div style="background:#191714;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid #2a2825;">
-    <p style="color:#c8c3b8;font-size:13px;margin:0;line-height:1.6;">
-      Cela ne signifie pas que la porte est fermée. Nous onboardons les établissements par vagues et les critères évoluent. N'hésitez pas à repostuler dans quelques semaines.
-    </p>
-  </div>
-
-  <p style="color:#8a8580;font-size:13px;margin-bottom:6px;">Des questions ?</p>
-  <p style="color:#c8c3b8;font-size:13px;margin:0;">Contactez-nous : <a href="mailto:contact@2960agency.com" style="color:#E8471A;text-decoration:none;">contact@2960agency.com</a></p>
-
-  <p style="color:#2a2825;font-size:11px;margin-top:32px;">2960 Agency</p>
-</div></body></html>`
-
-  try {
-    await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': BREVO_API_KEY,
-      },
-      body: JSON.stringify({
-        sender: { name: FROM_NAME, email: FROM_EMAIL },
-        to: [{ email: business.email }],
-        subject: 'Votre candidature 2960 Agency',
-        htmlContent: html,
-      }),
-    })
-  } catch (e) {
-    console.error('Business rejected email failed:', e)
-  }
-}
-
-// NEW: Message notification email
+// Message notification
 export async function sendMessageNotification(data: {
-  recipientEmail: string
-  recipientName: string
-  senderName: string
-  restaurantName: string
-  message: string
-  conversationUrl: string | null
+  recipientEmail: string; recipientName: string;
+  senderName: string; restaurantName: string;
+  message: string; conversationUrl: string | null;
 }) {
-  const buttonHtml = data.conversationUrl
-    ? `<a href="${data.conversationUrl}"
-         style="display:inline-block;background:#E8471A;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;margin-top:8px;">
-        Répondre
-      </a>`
-    : `<p style="color:#8a8580;font-size:12px;margin-top:8px;">Connectez-vous à votre dashboard pour répondre.</p>`
+  const body = p(`Vous avez un nouveau message de ${hl(data.senderName)} concernant la collab chez ${data.restaurantName}.`) +
+    `<div style="background:#EFEFEF;border-radius:12px;padding:16px;margin:16px 0;">
+      <p style="color:#666;font-size:11px;margin:0 0 6px;">${data.senderName}</p>
+      <p style="color:#1A1A1A;font-size:14px;margin:0;line-height:1.6;white-space:pre-wrap;">${data.message}</p>
+    </div>`
+  const html = buildEmail(`Bonjour ${data.recipientName},`, body,
+    data.conversationUrl ? 'Répondre' : null,
+    data.conversationUrl, false)
+  await sendToUser(data.recipientEmail, `💬 Message de ${data.senderName} — ${data.restaurantName}`, html)
+}
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<div style="max-width:660px;margin:40px auto;padding:0 20px;">
-  <div style="margin-bottom:28px;">
-    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
-  </div>
-  <h1 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 12px;">💬 Nouveau message</h1>
-  <p style="color:#c8c3b8;font-size:14px;margin:0 0 20px;">
-    Bonjour ${data.recipientName}, vous avez un nouveau message de <strong style="color:#E8471A;">${data.senderName}</strong> concernant la collab chez ${data.restaurantName}.
-  </p>
+// Password reset
+export async function sendPasswordResetEmail(data: { email: string; firstName: string; resetUrl: string }) {
+  const body = p('Tu as demandé à réinitialiser ton mot de passe. Clique sur le bouton ci-dessous pour en choisir un nouveau.') +
+    spacer() +
+    pMuted('Ce lien expire dans 1 heure. Si tu n\'as pas fait cette demande, ignore cet email.')
+  const html = buildEmail(`Salut ${data.firstName},`, body, 'Réinitialiser mon mot de passe', data.resetUrl, false)
+  await sendToUser(data.email, 'Réinitialisation de mot de passe — 2960 Agency', html)
+}
 
-  <div style="background:#191714;border-radius:12px;padding:20px;margin-bottom:24px;border:1px solid #2a2825;">
-    <p style="color:#8a8580;font-size:11px;margin:0 0 8px;">${data.senderName}</p>
-    <p style="color:#e8e4dc;font-size:14px;margin:0;line-height:1.6;white-space:pre-wrap;">${data.message}</p>
-  </div>
+// Business rejected
+export async function sendBusinessRejected(business: { businessName: string; ownerName: string; email: string }) {
+  const body = p(`Nous vous remercions pour l'intérêt que vous portez à 2960 Agency. Après examen de votre candidature pour ${hl(business.businessName)}, nous ne sommes malheureusement pas en mesure de vous intégrer à la plateforme pour le moment.`) +
+    `<div style="background:#EFEFEF;border-radius:12px;padding:20px;margin:16px 0;">
+      <p style="color:#1A1A1A;font-size:13px;margin:0;line-height:1.6;">Cela ne signifie pas que la porte est fermée. Nous onboardons les établissements par vagues et les critères évoluent. N'hésitez pas à repostuler dans quelques semaines.</p>
+    </div>` +
+    pMuted('Des questions ? Répondez à ce mail ou contactez-nous : <a href="mailto:contact@2960agency.com" style="color:#FF6339;text-decoration:none;">contact@2960agency.com</a>')
+  const html = buildEmail(`Bonjour ${business.ownerName},`, body, null, null, false)
+  await sendToUser(business.email, 'Votre candidature 2960 Agency', html)
+}
 
-  ${buttonHtml}
+// Business accepted (alias for R0)
+export async function sendBusinessAccepted(business: { businessName: string; ownerName: string; email: string }) {
+  await sendRestoR0({ restoName: business.businessName, email: business.email })
+}
 
-  <p style="color:#2a2825;font-size:11px;margin-top:32px;">2960 Agency — notification automatique</p>
-</div></body></html>`
+// ═══════════════════════════════════════════════════════════
+//  LEGACY ALIASES (backward compatibility for existing callers)
+// ═══════════════════════════════════════════════════════════
 
-  try {
-    await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': BREVO_API_KEY,
-      },
-      body: JSON.stringify({
-        sender: { name: FROM_NAME, email: FROM_EMAIL },
-        to: [{ email: data.recipientEmail }],
-        subject: `💬 Message de ${data.senderName} — ${data.restaurantName}`,
-        htmlContent: html,
-      }),
+export const sendCreatorValidation = sendCreatorC0
+
+export async function sendBookingConfirmation(booking: {
+  creatorName: string; creatorEmail: string; creatorPhone: string; creatorTiktok: string;
+  restaurantName: string; restaurantAddress: string; restaurantCity: string;
+  restaurantEmail: string | null; restaurantOwner: string | null;
+  conversationUrl: string | null;
+  bookingDate: string; timeSlot: string; offerDescription: string;
+}) {
+  await sendCreatorBookingConfirm({
+    creatorName: booking.creatorName, creatorEmail: booking.creatorEmail,
+    restaurantName: booking.restaurantName, restaurantAddress: booking.restaurantAddress,
+    restaurantCity: booking.restaurantCity,
+    bookingDate: booking.bookingDate, timeSlot: booking.timeSlot,
+    offerDescription: booking.offerDescription,
+  })
+  await sendAdminBookingNotification({
+    creatorName: booking.creatorName, creatorTiktok: booking.creatorTiktok,
+    creatorEmail: booking.creatorEmail, creatorPhone: booking.creatorPhone,
+    restaurantName: booking.restaurantName,
+    restaurantAddress: `${booking.restaurantAddress}, ${booking.restaurantCity}`,
+    bookingDate: booking.bookingDate, timeSlot: booking.timeSlot,
+    offerDescription: booking.offerDescription,
+  })
+  if (booking.restaurantEmail) {
+    const numMatch = booking.offerDescription?.match(/(\d+)/)
+    const numPeople = numMatch ? parseInt(numMatch[1]) : 1
+    await sendRestoResa({
+      restoName: booking.restaurantName, email: booking.restaurantEmail,
+      creatorName: booking.creatorName, date: booking.bookingDate,
+      heure: booking.timeSlot, numPeople,
     })
-  } catch (e) {
-    console.error('Message notification email failed:', e)
   }
 }
 
-// Booking reminder email (5 days before — creator must reconfirm)
+export async function sendBookingCancelledEmail(resto: { ownerName: string; email: string; creatorName: string; bookingDate: string }) {
+  await sendRestoAnnul({ restoName: resto.ownerName, email: resto.email, date: resto.bookingDate })
+}
+
 export async function sendBookingReminder(data: {
-  creatorName: string
-  creatorEmail: string
-  restaurantName: string
-  restaurantAddress: string
-  restaurantCity: string
-  bookingDate: string
-  timeSlot: string
-  offerDescription: string
-  reconfirmUrl: string
+  creatorName: string; creatorEmail: string;
+  restaurantName: string; restaurantAddress: string; restaurantCity: string;
+  bookingDate: string; timeSlot: string; offerDescription: string;
+  reconfirmUrl: string;
 }) {
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<div style="max-width:660px;margin:40px auto;padding:0 20px;">
-  <div style="margin-bottom:28px;">
-    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
-  </div>
-  <h1 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 12px;">Rappel — Collab à venir</h1>
-  <p style="color:#c8c3b8;font-size:15px;margin:0 0 24px;line-height:1.6;">
-    Salut ${data.creatorName},<br><br>
-    Ta collab chez <strong style="color:#E8471A;">${data.restaurantName}</strong> approche !
-    Merci de <strong style="color:#fff;">reconfirmer ta présence</strong> pour maintenir ta réservation.
-  </p>
-
-  <div style="background:#191714;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid #2a2825;">
-    <div style="margin-bottom:16px;">
-      <div style="color:#8a8580;font-size:12px;margin-bottom:4px;">Restaurant</div>
-      <div style="color:#fff;font-size:15px;font-weight:600;">${data.restaurantName}</div>
-      <div style="color:#c8c3b8;font-size:13px;">${data.restaurantAddress}, ${data.restaurantCity}</div>
-    </div>
-    <div style="margin-bottom:16px;">
-      <div style="color:#8a8580;font-size:12px;margin-bottom:4px;">Date & Heure</div>
-      <div style="color:#fff;font-size:15px;font-weight:600;">${data.bookingDate}</div>
-      <div style="color:#c8c3b8;font-size:13px;">${data.timeSlot}</div>
-    </div>
-    <div>
-      <div style="color:#8a8580;font-size:12px;margin-bottom:4px;">Ce que tu recois</div>
-      <div style="color:#c8c3b8;font-size:14px;">${data.offerDescription}</div>
-    </div>
-  </div>
-
-  <div style="background:rgba(252,250,166,0.08);border:1px solid rgba(252,250,166,0.15);border-radius:12px;padding:20px;margin-bottom:24px;">
-    <p style="color:#fcfaa6;font-size:13px;font-weight:600;margin:0 0 8px;">Action requise</p>
-    <p style="color:#c8c3b8;font-size:13px;margin:0;line-height:1.6;">
-      Tu dois reconfirmer ta presence au moins <strong style="color:#fff;">24h avant</strong> le rendez-vous.
-      Sans reconfirmation, ta reservation sera automatiquement annulee.
-    </p>
-  </div>
-
-  <div style="text-align:center;margin-bottom:28px;">
-    <a href="${data.reconfirmUrl}"
-       style="display:inline-block;background:#E8471A;color:#fff;padding:16px 40px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">
-      Je confirme ma presence
-    </a>
-  </div>
-
-  <p style="color:#8a8580;font-size:12px;margin:0;">Tu peux aussi reconfirmer depuis ton dashboard 2960 Agency.</p>
-
-  <p style="color:#2a2825;font-size:11px;margin-top:32px;">2960 Agency — notification automatique</p>
-</div></body></html>`
-
-  try {
-    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': BREVO_API_KEY,
-      },
-      body: JSON.stringify({
-        sender: { name: FROM_NAME, email: FROM_EMAIL },
-        to: [{ email: data.creatorEmail }],
-        subject: `Rappel — Collab chez ${data.restaurantName} le ${data.bookingDate}`,
-        htmlContent: html,
-      }),
-    })
-    if (!res.ok) {
-      const err = await res.text()
-      console.error('Brevo reminder email error:', res.status, err)
-    }
-  } catch (e) {
-    console.error('Reminder email failed:', e)
-  }
+  await sendCreatorReconf({
+    firstName: data.creatorName.split(' ')[0], email: data.creatorEmail,
+    restoName: data.restaurantName,
+    date: data.bookingDate, heure: data.timeSlot,
+    maxPeople: 3,
+    reconfirmUrl: data.reconfirmUrl,
+  })
 }
 
-export async function sendPasswordResetEmail(data: {
-  email: string
-  firstName: string
-  resetUrl: string
-}) {
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#0a0a08;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<div style="max-width:660px;margin:40px auto;padding:0 20px;">
-  <div style="margin-bottom:28px;">
-    <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#D94F2A;">2960 Agency</span>
-  </div>
-  <h1 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 12px;">Réinitialisation de mot de passe</h1>
-  <p style="color:#c8c3b8;font-size:15px;margin:0 0 24px;line-height:1.6;">
-    Salut ${data.firstName},<br><br>
-    Tu as demandé à réinitialiser ton mot de passe. Clique sur le bouton ci-dessous pour en choisir un nouveau.
-  </p>
-  <div style="text-align:center;margin:32px 0;">
-    <a href="${data.resetUrl}"
-       style="display:inline-block;background:#E8471A;color:#fff;padding:16px 40px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">
-      Réinitialiser mon mot de passe
-    </a>
-  </div>
-  <p style="color:#8a8580;font-size:12px;margin:0 0 8px;">Ce lien expire dans 1 heure.</p>
-  <p style="color:#8a8580;font-size:12px;margin:0;">Si tu n'as pas fait cette demande, ignore cet email.</p>
-  <p style="color:#2a2825;font-size:11px;margin-top:32px;">2960 Agency — notification automatique</p>
-</div></body></html>`
-
-  try {
-    await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': BREVO_API_KEY,
-      },
-      body: JSON.stringify({
-        sender: { name: FROM_NAME, email: FROM_EMAIL },
-        to: [{ email: data.email }],
-        subject: 'Réinitialisation de mot de passe — 2960 Agency',
-        htmlContent: html,
-      }),
-    })
-  } catch (e) {
-    console.error('Password reset email failed:', e)
-  }
+export async function sendMoteurBPush(creator: { firstName: string; email: string; restoName: string; maxGuests: number; netPrime: number }) {
+  await sendCreatorInvitation({
+    firstName: creator.firstName, email: creator.email,
+    restoName: creator.restoName, quartier: '',
+    maxPeople: creator.maxGuests, netPrime: creator.netPrime,
+  })
 }
+
+export async function sendNudgeAutoAccept(resto: { ownerName: string; email: string }) {
+  await sendRestoNudgeAuto({ restoName: resto.ownerName, email: resto.email, creatorName: 'Un créateur' })
+}
+
+export async function sendRestoDripH1(resto: { ownerName: string; email: string }) { await sendRestoR0({ restoName: resto.ownerName, email: resto.email }) }
+export async function sendRestoDripJ1(resto: { ownerName: string; email: string }) { await sendRestoDripRJ1({ restoName: resto.ownerName, email: resto.email }) }
+export async function sendRestoDripJ3(resto: { ownerName: string; email: string }) { await sendRestoDripRJ3({ restoName: resto.ownerName, email: resto.email }) }
+export async function sendRestoDripJ6(resto: { ownerName: string; email: string }) { await sendRestoDripRJ6({ restoName: resto.ownerName, email: resto.email }) }
+export async function sendRestoPublishedNoBookingsJ2(resto: { ownerName: string; email: string }) { await sendRestoRP2({ restoName: resto.ownerName, email: resto.email, isManual: false, hasPrime: false }) }
+export async function sendRestoPublishedNoBookingsJ5(resto: { ownerName: string; email: string }) { await sendRestoRP5({ restoName: resto.ownerName, email: resto.email }) }
+export async function sendCreatorDripC2(creator: { firstName: string; email: string }) { await sendCreatorC1(creator) }
+export async function sendCreatorDripC3(creator: { firstName: string; email: string }) { await sendCreatorC1(creator) }
+export async function sendCreatorDripC4(creator: { firstName: string; email: string }) { await sendCreatorC1(creator) }
+export async function sendCreatorDripC5(creator: { firstName: string; email: string; restoName: string; maxGuests: number; maxPrime: number }) {
+  await sendCreatorInvitation({ firstName: creator.firstName, email: creator.email, restoName: creator.restoName, quartier: '', maxPeople: creator.maxGuests, netPrime: Math.round(creator.maxPrime * 0.75) })
+}
+export async function sendRestoDripR2(resto: { ownerName: string; email: string }) { await sendRestoDripRJ1({ restoName: resto.ownerName, email: resto.email }) }
+export async function sendRestoDripR3(resto: { ownerName: string; email: string }) { await sendRestoDripRJ6({ restoName: resto.ownerName, email: resto.email }) }

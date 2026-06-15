@@ -210,6 +210,7 @@ export default function RestaurantDashboard() {
   const [newPhotoUrl, setNewPhotoUrl] = useState('')
   const [isPublished, setIsPublished] = useState(false)
   const [directives, setDirectives] = useState('')
+  const [dietaryOptions, setDietaryOptions] = useState<string[]>([])
   const [showViralityRef, setShowViralityRef] = useState(false)
   const [inviteSending, setInviteSending] = useState<number | null>(null)
   const [invitedCreators, setInvitedCreators] = useState<Set<number>>(new Set())
@@ -278,6 +279,7 @@ export default function RestaurantDashboard() {
       setMyPhotos(colData.photos || [])
       setIsPublished(colData.isPublished || false)
       setDirectives(colData.directives || '')
+      setDietaryOptions(colData.dietaryOptions || [])
       setMaxPerWeek(colData.maxPerWeek ?? null)
       setAutoAccept(colData.autoAccept !== false)
       setIsFirstTime(colData.isFirstTime || false)
@@ -446,7 +448,7 @@ export default function RestaurantDashboard() {
   const handleSaveOffer = async () => {
     setOfferSaving(true)
     setOfferSaved(false)
-    await fetch('/api/restaurant/collabs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update_offer', maxPeople, viralityTiers, directives }) })
+    await fetch('/api/restaurant/collabs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update_offer', maxPeople, viralityTiers, directives, dietaryOptions }) })
     setMyOffer(`Repas de 1 à ${maxPeople} personne${maxPeople > 1 ? 's' : ''}`)
     setOfferSaving(false)
     setOfferSaved(true)
@@ -789,6 +791,40 @@ export default function RestaurantDashboard() {
                   style={{ background: 'rgba(232,71,26,0.12)', color: '#E8471A', border: '1px solid rgba(232,71,26,0.2)' }}>
                   + {locale === 'fr' ? 'Ajouter un palier' : 'Add a tier'}
                 </button>
+              </div>
+
+              {/* Dietary options */}
+              <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${c.divider}` }}>
+                <label className="font-dm text-white/50 text-[11px] uppercase tracking-[0.06em] block mb-3">
+                  {locale === 'fr' ? 'Vous proposez des plats' : 'You offer dishes'}
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: 'halal', label: 'Halal' },
+                    { key: 'casher', label: 'Casher' },
+                    { key: 'vegetarien', label: 'Végétarien' },
+                    { key: 'vegan', label: 'Vegan' },
+                    { key: 'sans_lactose', label: 'Sans lactose' },
+                    { key: 'sans_gluten', label: 'Sans gluten' },
+                  ].map(opt => {
+                    const active = dietaryOptions.includes(opt.key)
+                    return (
+                      <button key={opt.key}
+                        onClick={() => {
+                          setDietaryOptions(prev => active ? prev.filter(o => o !== opt.key) : [...prev, opt.key])
+                          triggerAutoSave()
+                        }}
+                        className="font-dm text-[12px] font-semibold px-3 py-1.5 rounded-full cursor-pointer transition-all"
+                        style={{
+                          background: active ? 'rgba(232,71,26,0.12)' : c.inputBg,
+                          color: active ? '#E8471A' : 'rgba(255,255,255,0.5)',
+                          border: `1px solid ${active ? 'rgba(232,71,26,0.3)' : c.inputBorder}`,
+                        }}>
+                        {active && '✓ '}{opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
 
               {/* Directives for creators — Pro & Assist only */}

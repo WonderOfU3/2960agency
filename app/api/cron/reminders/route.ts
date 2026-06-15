@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
-import { sendBookingReminder } from '@/lib/email'
+import { sendBookingReminder, sendCreatorRdv } from '@/lib/email'
 import { notifyBookingReminder, notifyPostDeadlineWarning, notifyPostOverdue, notifyRestaurantPostOverdue, notifyCreatorSuspended } from '@/lib/notifications'
 
 // Call this endpoint daily via external cron (e.g. Vercel Cron, cron-job.org)
@@ -133,11 +133,45 @@ export async function GET(req: NextRequest) {
       overdueCount++
     }
 
+    // 5. C-RDV email — sent the day before a booking
+    const toRdv = await sql`
+      SELECT b.id, b.booking_date, b.slot_start_time, b.slot_end_time,
+             c.first_name, c.email as creator_email,
+             r.name as restaurant_name, r.address as restaurant_address, r.city as restaurant_city,
+             ts.start_time, ts.end_time
+      FROM bookings b
+      JOIN creators c ON b.creator_id = c.id
+      JOIN restaurants r ON b.restaurant_id = r.id
+      JOIN time_slots ts ON b.time_slot_id = ts.id
+      WHERE b.status = 'confirmed'
+        AND b.booking_date = CURRENT_DATE + INTERVAL '1 day'
+        AND b.rdv_sent_at IS NULL
+    `
+
+    let rdvSent = 0
+    for (const b of toRdv) {
+      const timeSlot = b.slot_start_time && b.slot_end_time
+        ? `${b.slot_start_time.slice(0, 5)} - ${b.slot_end_time.slice(0, 5)}`
+        : `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}`
+
+      await sendCreatorRdv({
+        firstName: b.first_name,
+        email: b.creator_email,
+        restoName: b.restaurant_name,
+        heure: timeSlot,
+        adresse: `${b.restaurant_address}, ${b.restaurant_city}`,
+      })
+
+      await sql`UPDATE bookings SET rdv_sent_at = NOW() WHERE id = ${b.id}`
+      rdvSent++
+    }
+
     return NextResponse.json({
       remindersSent,
       bookingsCancelled: toCancel.length,
       deadlineWarnings,
       overdueCount,
+      rdvSent,
     })
   } catch (err) {
     console.error('Cron reminders error:', err)

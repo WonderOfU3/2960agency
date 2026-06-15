@@ -19,7 +19,7 @@ export async function GET() {
     `
 
     const restaurant = await sql`
-      SELECT offer_description, max_bookings_per_day, max_bookings_per_week, max_people, virality_tiers, photos, is_published, directives, auto_accept, first_published_at
+      SELECT offer_description, max_bookings_per_day, max_bookings_per_week, max_people, virality_tiers, photos, is_published, directives, auto_accept, first_published_at, dietary_options
       FROM restaurants WHERE id = ${session.restaurantId}
     `
 
@@ -37,6 +37,7 @@ export async function GET() {
       directives: r?.directives || '',
       maxPerWeek: r?.max_bookings_per_week ?? null,
       autoAccept: r?.auto_accept !== false,
+      dietaryOptions: r?.dietary_options || [],
       firstPublishedAt: r?.first_published_at || null,
       isFirstTime,
     })
@@ -90,12 +91,14 @@ export async function POST(req: NextRequest) {
         .sort((a: { views: number }, b: { views: number }) => a.views - b.views)
       const offerDesc = `Repas de 1 à ${maxPeople} personne${maxPeople > 1 ? 's' : ''}`
       const directivesText = typeof body.directives === 'string' ? body.directives.slice(0, 1000) : null
+      const dietaryOpts = Array.isArray(body.dietaryOptions) ? body.dietaryOptions.filter((o: string) => typeof o === 'string') : []
       await sql`
         UPDATE restaurants
         SET offer_description = ${offerDesc},
             max_people = ${maxPeople},
             virality_tiers = ${JSON.stringify(validTiers)}::jsonb,
-            directives = ${directivesText}
+            directives = ${directivesText},
+            dietary_options = ${dietaryOpts}
         WHERE id = ${session.restaurantId}
       `
       return NextResponse.json({ success: true })
