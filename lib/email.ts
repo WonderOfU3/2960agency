@@ -36,7 +36,7 @@ function buildEmail(greeting: string, bodyHtml: string, ctaLabel: string | null,
 <body style="margin:0;padding:0;background:#F3F4F7;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <div style="max-width:460px;margin:0 auto;padding:40px 16px;">
   <div style="margin-bottom:24px;text-align:center;">
-    <span style="font-family:'TAN Buster','Georgia',serif;font-size:14px;font-weight:400;letter-spacing:0.18em;text-transform:uppercase;color:#6D0040;">2960 AGENCY</span>
+    <span style="font-family:'TAN Buster',sans-serif;font-size:14px;font-weight:400;letter-spacing:0.02em;text-transform:uppercase;color:#6D0040;">2960 AGENCY</span>
   </div>
   <div style="background:#fff;border-radius:16px;padding:36px 32px;">
     <p style="color:#1A1A1A;font-size:15px;margin:0 0 20px;line-height:1.6;">${greeting}</p>
@@ -44,7 +44,7 @@ function buildEmail(greeting: string, bodyHtml: string, ctaLabel: string | null,
     ${ctaBlock}
   </div>
   <div style="text-align:center;margin-top:24px;">
-    <p style="font-family:'TAN Buster','Georgia',serif;color:#6D0040;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;margin:0;">2960 AGENCY</p>${unsub}
+    <p style="font-family:'TAN Buster',sans-serif;color:#6D0040;font-size:10px;letter-spacing:0.02em;text-transform:uppercase;margin:0;">2960 AGENCY</p>${unsub}
   </div>
 </div></body></html>`
 }
@@ -440,7 +440,7 @@ export async function sendCreatorBookingConfirm(data: {
   bookingDate: string; timeSlot: string; offerDescription: string;
 }) {
   const body = p(`Ta collab avec ${hl(data.restaurantName)} est confirmée !`) +
-    `<div style="background:#EFEFEF;border-radius:12px;padding:20px;margin:16px 0;">
+    `<div style="background:#F3F4F7;border-radius:12px;padding:20px;margin:16px 0;">
       <div style="margin-bottom:12px;"><span style="color:#666;font-size:12px;">📍 Restaurant</span><br><strong style="color:#1A1A1A;font-size:15px;">${data.restaurantName}</strong><br><span style="color:#666;font-size:13px;">${data.restaurantAddress}, ${data.restaurantCity}</span></div>
       <div style="margin-bottom:12px;"><span style="color:#666;font-size:12px;">📅 Date & Heure</span><br><strong style="color:#1A1A1A;font-size:15px;">${data.bookingDate}</strong><br><span style="color:#666;font-size:13px;">${data.timeSlot}</span></div>
       <div><span style="color:#666;font-size:12px;">🎁 Ce que tu reçois</span><br><span style="color:#1A1A1A;font-size:14px;">${data.offerDescription}</span></div>
@@ -472,7 +472,7 @@ export async function sendAdminBookingNotification(data: {
 // Welcome creator (pre-validation, at signup)
 export async function sendCreatorWelcome(creator: { firstName: string; email: string; ambassadorCode: string }) {
   const body = p('Merci pour ton inscription ! Nous examinons actuellement ton profil pour te matcher avec les meilleures opportunités de collabs.') +
-    `<div style="background:#EFEFEF;border-radius:12px;padding:20px;margin:16px 0;">
+    `<div style="background:#F3F4F7;border-radius:12px;padding:20px;margin:16px 0;">
       <p style="color:#666;font-size:13px;margin:0 0 8px;">📊 Statut de ton compte</p>
       <div style="background:#FFF9E0;border:1px solid #F5E6A3;border-radius:8px;padding:12px;">
         <p style="color:#8B6914;font-size:13px;margin:0;font-weight:600;">⏳ En cours de validation</p>
@@ -498,7 +498,7 @@ export async function sendMessageNotification(data: {
   message: string; conversationUrl: string | null;
 }) {
   const body = p(`Vous avez un nouveau message de ${hl(data.senderName)} concernant la collab chez ${data.restaurantName}.`) +
-    `<div style="background:#EFEFEF;border-radius:12px;padding:16px;margin:16px 0;">
+    `<div style="background:#F3F4F7;border-radius:12px;padding:16px;margin:16px 0;">
       <p style="color:#666;font-size:11px;margin:0 0 6px;">${data.senderName}</p>
       <p style="color:#1A1A1A;font-size:14px;margin:0;line-height:1.6;white-space:pre-wrap;">${data.message}</p>
     </div>`
@@ -520,7 +520,7 @@ export async function sendPasswordResetEmail(data: { email: string; firstName: s
 // Business rejected
 export async function sendBusinessRejected(business: { businessName: string; ownerName: string; email: string }) {
   const body = p(`Nous vous remercions pour l'intérêt que vous portez à 2960 Agency. Après examen de votre candidature pour ${hl(business.businessName)}, nous ne sommes malheureusement pas en mesure de vous intégrer à la plateforme pour le moment.`) +
-    `<div style="background:#EFEFEF;border-radius:12px;padding:20px;margin:16px 0;">
+    `<div style="background:#F3F4F7;border-radius:12px;padding:20px;margin:16px 0;">
       <p style="color:#1A1A1A;font-size:13px;margin:0;line-height:1.6;">Cela ne signifie pas que la porte est fermée. Nous onboardons les établissements par vagues et les critères évoluent. N'hésitez pas à repostuler dans quelques semaines.</p>
     </div>` +
     pMuted('Des questions ? Répondez à ce mail ou contactez-nous : <a href="mailto:contact@2960agency.com" style="color:#FF6339;text-decoration:none;">contact@2960agency.com</a>')
