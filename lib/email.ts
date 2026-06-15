@@ -26,7 +26,7 @@ function buildEmail(greeting: string, bodyHtml: string, ctaLabel: string | null,
 <body style="margin:0;padding:0;background:#F3F4F7;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <div style="max-width:460px;margin:0 auto;padding:40px 16px;">
   <div style="margin-bottom:24px;text-align:center;">
-    <img src="${APP_URL}/images/email-logo.png" alt="2960 AGENCY" width="132" height="18" style="display:inline-block;" />
+    <img src="${APP_URL}/images/email-logo-v2.png" alt="2960 AGENCY" width="132" height="18" style="display:inline-block;" />
   </div>
   <div style="background:#fff;border-radius:16px;padding:36px 32px;">
     <p style="color:#1A1A1A;font-size:15px;margin:0 0 20px;line-height:1.6;">${greeting}</p>
@@ -34,7 +34,7 @@ function buildEmail(greeting: string, bodyHtml: string, ctaLabel: string | null,
     ${ctaBlock}
   </div>
   <div style="text-align:center;margin-top:24px;">
-    <img src="${APP_URL}/images/email-logo.png" alt="2960 AGENCY" width="88" height="12" style="display:inline-block;opacity:0.5;" />${unsub}
+    <img src="${APP_URL}/images/email-logo-v2.png" alt="2960 AGENCY" width="88" height="12" style="display:inline-block;opacity:0.5;" />${unsub}
   </div>
 </div></body></html>`
 }
