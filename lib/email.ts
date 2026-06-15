@@ -40,15 +40,15 @@ function buildEmail(greeting: string, bodyHtml: string, ctaLabel: string | null,
 }
 
 function p(text: string): string {
-  return `<p style="color:#2D2D2D;font-size:15px;margin:0 0 16px;line-height:1.7;">${text}</p>`
+  return `<p style="color:#6D0040;font-size:15px;margin:0 0 16px;line-height:1.7;">${text}</p>`
 }
 
 function pMuted(text: string): string {
-  return `<p style="color:#A8668F;font-size:14px;margin:0 0 16px;line-height:1.6;">${text}</p>`
+  return `<p style="color:#6D0040;font-size:14px;margin:0 0 16px;line-height:1.6;">${text}</p>`
 }
 
 function dash(text: string): string {
-  return `<p style="color:#2D2D2D;font-size:14px;margin:0 0 8px;line-height:1.6;padding-left:12px;"><span style="color:#FF6339;">—</span> ${text}</p>`
+  return `<p style="color:#6D0040;font-size:14px;margin:0 0 8px;line-height:1.6;padding-left:12px;"><span style="color:#FF6339;">—</span> ${text}</p>`
 }
 
 function spacer(): string {
@@ -431,9 +431,9 @@ export async function sendCreatorBookingConfirm(data: {
 }) {
   const body = p(`Ta collab avec ${hl(data.restaurantName)} est confirmée !`) +
     `<div style="background:#F3F4F7;border-radius:12px;padding:20px;margin:16px 0;">
-      <div style="margin-bottom:12px;"><span style="color:#9E4D7A;font-size:12px;">📍 Restaurant</span><br><strong style="color:#6D0040;font-size:15px;">${data.restaurantName}</strong><br><span style="color:#A8668F;font-size:13px;">${data.restaurantAddress}, ${data.restaurantCity}</span></div>
-      <div style="margin-bottom:12px;"><span style="color:#9E4D7A;font-size:12px;">📅 Date & Heure</span><br><strong style="color:#6D0040;font-size:15px;">${data.bookingDate}</strong><br><span style="color:#A8668F;font-size:13px;">${data.timeSlot}</span></div>
-      <div><span style="color:#9E4D7A;font-size:12px;">🎁 Ce que tu reçois</span><br><span style="color:#6D0040;font-size:14px;">${data.offerDescription}</span></div>
+      <div style="margin-bottom:12px;"><span style="color:#6D0040;font-size:12px;">📍 Restaurant</span><br><strong style="color:#6D0040;font-size:15px;">${data.restaurantName}</strong><br><span style="color:#6D0040;font-size:13px;">${data.restaurantAddress}, ${data.restaurantCity}</span></div>
+      <div style="margin-bottom:12px;"><span style="color:#6D0040;font-size:12px;">📅 Date & Heure</span><br><strong style="color:#6D0040;font-size:15px;">${data.bookingDate}</strong><br><span style="color:#6D0040;font-size:13px;">${data.timeSlot}</span></div>
+      <div><span style="color:#6D0040;font-size:12px;">🎁 Ce que tu reçois</span><br><span style="color:#6D0040;font-size:14px;">${data.offerDescription}</span></div>
     </div>` +
     p('<strong>Rappel :</strong>') +
     dash('Arrive à l\'heure') +
@@ -463,19 +463,19 @@ export async function sendAdminBookingNotification(data: {
 export async function sendCreatorWelcome(creator: { firstName: string; email: string; ambassadorCode: string }) {
   const body = p('Merci pour ton inscription ! Nous examinons actuellement ton profil pour te matcher avec les meilleures opportunités de collabs.') +
     `<div style="background:#F3F4F7;border-radius:12px;padding:20px;margin:16px 0;">
-      <p style="color:#A8668F;font-size:13px;margin:0 0 8px;">📊 Statut de ton compte</p>
+      <p style="color:#6D0040;font-size:13px;margin:0 0 8px;">📊 Statut de ton compte</p>
       <div style="background:#FFF9E0;border:1px solid #F5E6A3;border-radius:8px;padding:12px;">
         <p style="color:#8B6914;font-size:13px;margin:0;font-weight:600;">⏳ En cours de validation</p>
       </div>
-      <p style="color:#B88DA5;font-size:12px;margin:10px 0 0;">Nous te contacterons dès que ton compte sera validé.</p>
+      <p style="color:#6D0040;font-size:12px;margin:10px 0 0;">Nous te contacterons dès que ton compte sera validé.</p>
     </div>` +
     `<div style="background:rgba(109,0,64,0.05);border:1px solid rgba(109,0,64,0.12);border-radius:12px;padding:20px;margin:16px 0;">
       <p style="color:#6D0040;font-size:14px;font-weight:700;margin:0 0 8px;">🎁 Ton code ambassadeur</p>
       <div style="background:#fff;border-radius:8px;padding:14px;margin:8px 0 12px;border:1px solid rgba(109,0,64,0.08);">
         <p style="color:#6D0040;font-size:26px;font-weight:700;text-align:center;margin:0;letter-spacing:0.15em;">${creator.ambassadorCode}</p>
       </div>
-      <p style="color:#2D2D2D;font-size:13px;margin:0 0 8px;line-height:1.6;">Partage ce code avec des restaurants ! Si 5 restaurants s'inscrivent avec ton code, tu gagnes ${hl('100€')}.</p>
-      <p style="color:#B88DA5;font-size:12px;margin:0;">Le restaurant doit simplement entrer ton code lors de son inscription.</p>
+      <p style="color:#6D0040;font-size:13px;margin:0 0 8px;line-height:1.6;">Partage ce code avec des restaurants ! Si 5 restaurants s'inscrivent avec ton code, tu gagnes ${hl('100€')}.</p>
+      <p style="color:#6D0040;font-size:12px;margin:0;">Le restaurant doit simplement entrer ton code lors de son inscription.</p>
     </div>`
   const html = buildEmail(`Salut ${creator.firstName},`, body, null, null, false)
   await sendToUser(creator.email, '🎉 Bienvenue chez 2960 Agency !', html)
@@ -489,8 +489,8 @@ export async function sendMessageNotification(data: {
 }) {
   const body = p(`Vous avez un nouveau message de ${hl(data.senderName)} concernant la collab chez ${data.restaurantName}.`) +
     `<div style="background:#F3F4F7;border-radius:12px;padding:16px;margin:16px 0;">
-      <p style="color:#B88DA5;font-size:11px;margin:0 0 6px;">${data.senderName}</p>
-      <p style="color:#2D2D2D;font-size:14px;margin:0;line-height:1.6;white-space:pre-wrap;">${data.message}</p>
+      <p style="color:#6D0040;font-size:11px;margin:0 0 6px;">${data.senderName}</p>
+      <p style="color:#6D0040;font-size:14px;margin:0;line-height:1.6;white-space:pre-wrap;">${data.message}</p>
     </div>`
   const html = buildEmail(`Bonjour ${data.recipientName},`, body,
     data.conversationUrl ? 'Répondre' : null,
@@ -511,7 +511,7 @@ export async function sendPasswordResetEmail(data: { email: string; firstName: s
 export async function sendBusinessRejected(business: { businessName: string; ownerName: string; email: string }) {
   const body = p(`Nous vous remercions pour l'intérêt que vous portez à 2960 Agency. Après examen de votre candidature pour ${hl(business.businessName)}, nous ne sommes malheureusement pas en mesure de vous intégrer à la plateforme pour le moment.`) +
     `<div style="background:#F3F4F7;border-radius:12px;padding:20px;margin:16px 0;">
-      <p style="color:#2D2D2D;font-size:13px;margin:0;line-height:1.6;">Cela ne signifie pas que la porte est fermée. Nous onboardons les établissements par vagues et les critères évoluent. N'hésitez pas à repostuler dans quelques semaines.</p>
+      <p style="color:#6D0040;font-size:13px;margin:0;line-height:1.6;">Cela ne signifie pas que la porte est fermée. Nous onboardons les établissements par vagues et les critères évoluent. N'hésitez pas à repostuler dans quelques semaines.</p>
     </div>` +
     pMuted('Des questions ? Répondez à ce mail ou contactez-nous : <a href="mailto:contact@2960agency.com" style="color:#FF6339;text-decoration:none;">contact@2960agency.com</a>')
   const html = buildEmail(`Bonjour ${business.ownerName},`, body, null, null, false)
