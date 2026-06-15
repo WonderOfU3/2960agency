@@ -22,21 +22,11 @@ function buildEmail(greeting: string, bodyHtml: string, ctaLabel: string | null,
       <p style="color:#aaa;font-size:10px;margin:12px 0 0;">
         <a href="${APP_URL}/unsubscribe" style="color:#aaa;text-decoration:underline;">Se désabonner</a> — tu ne recevras plus ces mails.
       </p>` : ''
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  @font-face {
-    font-family: 'TAN Buster';
-    src: url('${APP_URL}/fonts/TAN-BUSTER-Regular.woff2') format('woff2'),
-         url('${APP_URL}/fonts/TAN-BUSTER-Regular.ttf') format('truetype');
-    font-weight: 400;
-    font-style: normal;
-  }
-</style>
-</head>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#F3F4F7;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <div style="max-width:460px;margin:0 auto;padding:40px 16px;">
   <div style="margin-bottom:24px;text-align:center;">
-    <span style="font-family:'TAN Buster',sans-serif;font-size:14px;font-weight:400;letter-spacing:0.02em;text-transform:uppercase;color:#6D0040;">2960 AGENCY</span>
+    <img src="${APP_URL}/images/email-logo.png" alt="2960 AGENCY" width="132" height="18" style="display:inline-block;" />
   </div>
   <div style="background:#fff;border-radius:16px;padding:36px 32px;">
     <p style="color:#1A1A1A;font-size:15px;margin:0 0 20px;line-height:1.6;">${greeting}</p>
@@ -44,7 +34,7 @@ function buildEmail(greeting: string, bodyHtml: string, ctaLabel: string | null,
     ${ctaBlock}
   </div>
   <div style="text-align:center;margin-top:24px;">
-    <p style="font-family:'TAN Buster',sans-serif;color:#6D0040;font-size:10px;letter-spacing:0.02em;text-transform:uppercase;margin:0;">2960 AGENCY</p>${unsub}
+    <img src="${APP_URL}/images/email-logo.png" alt="2960 AGENCY" width="88" height="12" style="display:inline-block;opacity:0.5;" />${unsub}
   </div>
 </div></body></html>`
 }
