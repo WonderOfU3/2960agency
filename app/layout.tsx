@@ -6,13 +6,31 @@ import { ThemeProvider } from '@/context/ThemeContext'
 import { ToastProvider } from '@/components/ui/Toast'
 
 export const metadata: Metadata = {
-  title: '2960 Agency — Restaurants & Creators',
-  description: 'La plateforme qui connecte restaurants indépendants et créateurs locaux à Paris.',
-  openGraph: {
-    title: '2960 Agency',
-    description: "Des restos t'invitent. Tu crées du contenu. Tout le monde y gagne.",
-    type: 'website',
+  title: {
+    default: '2960 Agency — Collabs TikTok entre restaurants et créateurs à Paris',
+    template: '%s',
   },
+  description: 'La plateforme qui connecte restaurants indépendants et créateurs TikTok vérifiés à Paris. Repas offert en échange d\'une vidéo. 3 collabs gratuites pour commencer.',
+  metadataBase: new URL('https://2960agency.com'),
+  openGraph: {
+    title: '2960 Agency — Collabs TikTok restaurants × créateurs',
+    description: 'Des restaurants t\'offrent un repas. Tu filmes et publies sur TikTok. 3 collabs gratuites, aucun abonnement pour commencer.',
+    type: 'website',
+    siteName: '2960 Agency',
+    url: 'https://2960agency.com',
+    locale: 'fr_FR',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '2960 Agency — Collabs TikTok restaurants × créateurs à Paris',
+    description: 'Repas offerts, vidéos TikTok, primes de viralité. La plateforme qui connecte restos et créateurs.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' as const },
+  },
+  alternates: { canonical: 'https://2960agency.com' },
 }
 
 export const viewport: Viewport = {
@@ -25,6 +43,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" data-theme="light" suppressHydrationWarning>
       <head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: '2960 Agency',
+          url: 'https://2960agency.com',
+          logo: 'https://2960agency.com/images/logo.png',
+          description: 'Plateforme de collaborations TikTok entre restaurants indépendants et créateurs de contenu vérifiés à Paris.',
+          email: 'contact@2960agency.com',
+          areaServed: { '@type': 'City', name: 'Paris', addressCountry: 'FR' },
+          knowsAbout: ['marketing restaurant', 'TikTok food content', 'influencer marketing', 'restaurant visibility', 'content creator marketplace'],
+        }) }} />
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {
             var t = localStorage.getItem('theme');

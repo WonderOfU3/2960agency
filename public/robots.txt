@@ -1,0 +1,26 @@
+# 2960 Agency — robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /creator/dashboard
+Disallow: /restaurant/dashboard
+Disallow: /conversation/
+Disallow: /scan/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+# AI crawlers — allowed
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://2960agency.com/sitemap.xml
