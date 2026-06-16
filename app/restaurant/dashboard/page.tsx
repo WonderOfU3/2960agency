@@ -1340,7 +1340,24 @@ export default function RestaurantDashboard() {
         {/* === CREATORS TAB === */}
         {tab === 'creators' && (
           <div>
-            {creators.length === 0 ? (
+            {!(subInfo && (subInfo.plan === 'pro' || subInfo.plan === 'pro_assist')) ? (
+              <div className="rounded-2xl p-8 text-center" style={{ background: c.cardBg, border: `1px solid ${c.divider}` }}>
+                <div className="text-[48px] mb-4" style={{ opacity: 0.2 }}>&#128274;</div>
+                <h3 className="font-dm font-bold text-[18px] mb-2" style={{ color: c.text }}>
+                  {locale === 'fr' ? 'Accès réservé aux comptes Pro' : 'Pro accounts only'}
+                </h3>
+                <p className="font-dm text-[14px] mb-6" style={{ color: c.textMuted, maxWidth: 400, margin: '0 auto 24px' }}>
+                  {locale === 'fr'
+                    ? 'Passez au plan Pro pour voir les profils créateurs, consulter leurs vidéos et les inviter directement à collaborer avec votre restaurant.'
+                    : 'Upgrade to Pro to view creator profiles, see their videos and invite them directly to collaborate with your restaurant.'}
+                </p>
+                <button onClick={() => setTab('subscription')}
+                  className="font-dm text-[14px] font-bold px-6 py-3 rounded-full cursor-pointer transition-all hover:brightness-110"
+                  style={{ background: '#E8471A', color: '#fff', border: 'none' }}>
+                  {locale === 'fr' ? 'Voir les formules Pro' : 'View Pro plans'} &rarr;
+                </button>
+              </div>
+            ) : creators.length === 0 ? (
               <p className="font-dm text-white/30 text-center py-12">{t.noCreators}</p>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
