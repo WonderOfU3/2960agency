@@ -149,7 +149,7 @@ interface Booking {
   creator_first_name: string; creator_last_name: string
   creator_tiktok: string; creator_instagram: string
   creator_email: string; creator_phone: string
-  start_time: string; end_time: string
+  start_time: string; end_time: string; slot_start_time?: string; slot_end_time?: string
   post_link?: string; post_submitted_at?: string
   claimed_tier?: { views: number; bonus: number }; claim_status?: string
   restaurant_virality_tiers?: { views: number; bonus: number }[]
@@ -493,8 +493,18 @@ export default function RestaurantDashboard() {
   const handleTogglePublish = async () => {
     const newVal = !isPublished
     setIsPublished(newVal)
+    if (newVal && isFirstTime) {
+      await fetch('/api/restaurant/collabs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'seed_defaults' }) })
+      setIsFirstTime(false)
+    }
     await fetch('/api/restaurant/collabs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'toggle_publish', isPublished: newVal }) })
-    if (newVal) fireOffrePubliee()
+    if (newVal) {
+      fireOffrePubliee()
+      if (!firstPublishedAt) {
+        setFirstPublishedAt(new Date().toISOString())
+        if (!localStorage.getItem('publishConfirmSeen')) setShowPublishConfirm(true)
+      }
+    }
   }
 
   const handleFirstPublish = async () => {
@@ -506,7 +516,7 @@ export default function RestaurantDashboard() {
     setIsFirstTime(false)
     await fetch('/api/restaurant/collabs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'toggle_publish', isPublished: true }) })
     fireOffrePubliee()
-    setShowPublishConfirm(true)
+    if (!localStorage.getItem('publishConfirmSeen')) setShowPublishConfirm(true)
     await fetchData()
   }
 
@@ -517,7 +527,7 @@ export default function RestaurantDashboard() {
       setAutoSaveIndicator(true)
       setTimeout(() => setAutoSaveIndicator(false), 2000)
     }, 800)
-  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [maxPeople, viralityTiers, directives, dietaryOptions])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpdateSlot = async (slotId: number, startTime: string, endTime: string, maxBookings: number) => {
     await fetch('/api/restaurant/collabs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update_slot', slotId, startTime, endTime, maxBookings }) })
@@ -679,17 +689,17 @@ export default function RestaurantDashboard() {
         {tab === 'offers' && (
           <div style={{ maxWidth: 720 }}>
 
-            {/* Publish confirmation overlay */}
+            {/* Publish confirmation overlay — only on first publish action, dismissed permanently */}
             {showPublishConfirm && (
               <div className="rounded-2xl p-6 mb-4 text-center" style={{ background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)' }}>
                 <p className="font-dm text-[#4ade80] text-[20px] font-bold mb-2">{locale === 'fr' ? 'Vous êtes en ligne !' : 'You\'re live!'}</p>
-                <p className="font-dm text-white/50 text-[14px] mb-3">{locale === 'fr' ? 'Vos 3 collabs offertes sont activées. On prévient les créateurs proches de chez vous.' : 'Your 3 free collabs are activated. We\'re notifying nearby creators.'}</p>
-                <button onClick={() => setShowPublishConfirm(false)} className="font-dm text-[13px] font-semibold px-5 py-2 rounded-lg cursor-pointer" style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80', border: 'none' }}>OK</button>
+                <p className="font-dm text-white/50 text-[14px] mb-3">{locale === 'fr' ? 'Votre offre est maintenant visible par les créateurs.' : 'Your offer is now visible to creators.'}</p>
+                <button onClick={() => { setShowPublishConfirm(false); localStorage.setItem('publishConfirmSeen', 'true') }} className="font-dm text-[13px] font-semibold px-5 py-2 rounded-lg cursor-pointer" style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80', border: 'none' }}>OK</button>
               </div>
             )}
 
-            {/* Visibility toggle — only shown AFTER first publish */}
-            {firstPublishedAt && !showPublishConfirm && (
+            {/* Visibility toggle — always shown */}
+            {!showPublishConfirm && (
               <div className="rounded-2xl p-5 mb-4" style={{
                 background: isPublished ? 'rgba(74,222,128,0.04)' : c.cardBg,
                 border: `1px solid ${isPublished ? 'rgba(74,222,128,0.15)' : c.divider}`,
@@ -705,8 +715,8 @@ export default function RestaurantDashboard() {
                   <div>
                     <span className="font-dm font-semibold text-[14px] block" style={{ color: c.text }}>
                       {isPublished
-                        ? (locale === 'fr' ? 'Offre en ligne' : 'Offer online')
-                        : (locale === 'fr' ? 'Offre en pause — invisible, aucune nouvelle réservation' : 'Offer paused — invisible, no new bookings')}
+                        ? (locale === 'fr' ? 'Offre visible' : 'Offer visible')
+                        : (locale === 'fr' ? 'Offre invisible — aucune nouvelle réservation' : 'Offer invisible — no new bookings')}
                     </span>
                   </div>
                 </label>
@@ -1041,16 +1051,7 @@ export default function RestaurantDashboard() {
               </div>
             </div>
 
-            {/* Publish button — shown only BEFORE first publish */}
-            {!firstPublishedAt && (
-              <div data-tour="publish" className="sticky bottom-4 z-40 mt-4">
-                <button onClick={handleFirstPublish}
-                  className="font-dm w-full text-[15px] font-bold rounded-xl cursor-pointer transition-all hover:brightness-110 active:scale-[0.98]"
-                  style={{ background: '#E8471A', color: '#fff', height: 56, border: 'none' }}>
-                  {locale === 'fr' ? 'Publier mon offre' : 'Publish my offer'} →
-                </button>
-              </div>
-            )}
+            {/* Removed: "Publier mon offre" button. Restaurants use the visibility toggle above instead. */}
           </div>
         )}
 
@@ -1081,7 +1082,7 @@ export default function RestaurantDashboard() {
                         </p>
                         <p className="font-dm text-[#E8471A] text-[13px] font-semibold mt-2">
                           {new Date(b.booking_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                          {' '}&middot; {b.start_time?.slice(0, 5)} - {b.end_time?.slice(0, 5)}
+                          {' '}&middot; {(b.slot_start_time || b.start_time)?.slice(0, 5)} - {(b.slot_end_time || b.end_time)?.slice(0, 5)}
                         </p>
                       </div>
 
@@ -1489,8 +1490,8 @@ export default function RestaurantDashboard() {
               </div>
             )}
 
-            {/* Trial expired banner */}
-            {!subInfo.onTrial && subInfo.trialCollabsUsed > 0 && (
+            {/* Trial expired banner — only show if NOT on a paid plan */}
+            {!subInfo.onTrial && subInfo.trialCollabsUsed > 0 && subInfo.plan === 'free' && (
               <div className="rounded-2xl p-5 mb-4 animate-fade-in" style={{
                 background: c.isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
                 border: `1px solid ${c.divider}`,
