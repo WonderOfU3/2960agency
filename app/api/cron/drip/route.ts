@@ -13,6 +13,11 @@ import {
   sendRestoRP5,
   sendRestoNudgeAuto,
   sendRestoWB,
+  sendRestoExplainer,
+  sendRestoEmpty3,
+  sendRestoConv2,
+  sendRestoFallback,
+  sendRestoPayWake,
 } from '@/lib/email'
 
 // Drip email sequences — runs daily at 10:00 UTC
@@ -35,6 +40,7 @@ export async function GET(req: NextRequest) {
   try {
     let c1 = 0, cLien1 = 0, cLien3 = 0, cLien5 = 0, cWB1 = 0, cWB2 = 0
     let rh1 = 0, rj1 = 0, rj3 = 0, rj6 = 0, rp2 = 0, rp5 = 0, rNudge = 0, rWB = 0
+    let rEmpty3 = 0, rConv2 = 0, rFallback = 0, rPayWake = 0
 
     // ═══════════════════════════════════════
     //  CREATOR SEQUENCES
@@ -336,7 +342,7 @@ export async function GET(req: NextRequest) {
 
     // RP5 — J+5 after first_published_at, 0 bookings, onboarding_step < 6
     const restosP5 = await sql`
-      SELECT r.id, r.name, ru.email
+      SELECT r.id, r.name, r.virality_tiers, ru.email
       FROM restaurants r
       JOIN restaurant_users ru ON ru.restaurant_id = r.id
       WHERE r.is_published = true
@@ -346,7 +352,8 @@ export async function GET(req: NextRequest) {
         AND NOT EXISTS (SELECT 1 FROM bookings b WHERE b.restaurant_id = r.id)
     `
     for (const rs of restosP5) {
-      await sendRestoRP5({ restoName: rs.name, email: rs.email })
+      const tiers5 = Array.isArray(rs.virality_tiers) ? rs.virality_tiers : []
+      await sendRestoRP5({ restoName: rs.name, email: rs.email, hasPrime: tiers5.length > 0 })
       await sql`UPDATE restaurants SET onboarding_step = 6 WHERE id = ${rs.id}`
       rp5++
     }
@@ -395,11 +402,92 @@ export async function GET(req: NextRequest) {
       rWB++
     }
 
+    // R-EMPTY3 — J+10 after first_published_at, still 0 bookings, onboarding_step < 7
+    const restosEmpty3 = await sql`
+      SELECT r.id, r.name, r.auto_accept, r.virality_tiers, ru.email
+      FROM restaurants r
+      JOIN restaurant_users ru ON ru.restaurant_id = r.id
+      WHERE r.is_published = true
+        AND r.first_published_at IS NOT NULL
+        AND r.first_published_at::date = (CURRENT_DATE - INTERVAL '10 days')::date
+        AND r.onboarding_step < 7
+        AND NOT EXISTS (SELECT 1 FROM bookings b WHERE b.restaurant_id = r.id)
+    `
+    for (const rs of restosEmpty3) {
+      const tiers = Array.isArray(rs.virality_tiers) ? rs.virality_tiers : []
+      await sendRestoEmpty3({ restoName: rs.name, email: rs.email, isManual: !rs.auto_accept, hasPrime: tiers.length > 0 })
+      await sql`UPDATE restaurants SET onboarding_step = 7 WHERE id = ${rs.id}`
+      rEmpty3++
+    }
+
+    // R-CONV-2 — J+3 after 3rd lien_video_poste, no payment, onboarding_step < 10
+    const restosConv2 = await sql`
+      SELECT r.id, r.name, ru.email
+      FROM restaurants r
+      JOIN restaurant_users ru ON ru.restaurant_id = r.id
+      WHERE r.subscription = 'free'
+        AND r.onboarding_step >= 8
+        AND r.onboarding_step < 10
+        AND EXISTS (
+          SELECT 1 FROM bookings b
+          WHERE b.restaurant_id = r.id AND b.post_link IS NOT NULL
+          HAVING COUNT(*) >= 3
+        )
+    `
+    for (const rs of restosConv2) {
+      await sendRestoConv2({ restoName: rs.name, email: rs.email })
+      await sql`UPDATE restaurants SET onboarding_step = 10 WHERE id = ${rs.id}`
+      rConv2++
+    }
+
+    // R-FALLBACK — sans_abo, 30j inactive
+    const restosFallback = await sql`
+      SELECT r.id, r.name, ru.email
+      FROM restaurants r
+      JOIN restaurant_users ru ON ru.restaurant_id = r.id
+      WHERE r.subscription = 'free'
+        AND r.is_published = false
+        AND r.onboarding_step >= 10
+        AND NOT EXISTS (
+          SELECT 1 FROM bookings b
+          WHERE b.restaurant_id = r.id AND b.created_at > NOW() - INTERVAL '30 days'
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM analytics_events ae
+          WHERE ae.user_id = r.id::text AND ae.user_type = 'restaurant'
+            AND ae.created_at > NOW() - INTERVAL '30 days'
+        )
+    `
+    for (const rs of restosFallback) {
+      await sendRestoFallback({ restoName: rs.name, email: rs.email })
+      rFallback++
+    }
+
+    // R-PAY-WAKE — paid but 0 collab this cycle
+    const restosPayWake = await sql`
+      SELECT r.id, r.name, ru.email
+      FROM restaurants r
+      JOIN restaurant_users ru ON ru.restaurant_id = r.id
+      WHERE r.subscription IN ('active', 'pro', 'pro_assist')
+        AND r.is_published = true
+        AND NOT EXISTS (
+          SELECT 1 FROM bookings b
+          WHERE b.restaurant_id = r.id
+            AND b.created_at > NOW() - INTERVAL '30 days'
+            AND b.status != 'cancelled'
+        )
+    `
+    for (const rs of restosPayWake) {
+      await sendRestoPayWake({ restoName: rs.name, email: rs.email })
+      rPayWake++
+    }
+
     return NextResponse.json({
       success: true,
       sent: {
         c1, cLien1, cLien3, cLien5, cWB1, cWB2,
         rh1, rj1, rj3, rj6, rp2, rp5, rNudge, rWB,
+        rEmpty3, rConv2, rFallback, rPayWake,
       },
     })
   } catch (err) {

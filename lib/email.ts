@@ -300,123 +300,277 @@ export async function sendCreatorWB2(creator: {
 //  RESTAURANT — SÉQUENCE (voix "vous")
 // ═══════════════════════════════════════════════════════════
 
-// R0/RH1 — Bienvenue + publier (H+1 ou immédiat après acceptation)
+// C.0 — Candidature explainer (immédiat à l'inscription, transactionnel)
+export async function sendRestoExplainer(resto: { restoName: string; email: string }) {
+  const body = p(`Votre inscription chez 2960 Agency est enregistrée. En une minute, voici exactement comment ça marche — parce qu'une pub ne dit jamais tout.`) +
+    p(`Aujourd'hui, vos futurs clients découvrent les restos sur les réseaux, dans une vidéo. Les restaurants qui remplissent ne cuisinent pas mieux que vous — on les voit, plus souvent, au bon endroit.`) +
+    p('Le concept, en 3 étapes :') +
+    dash('Vous postez vos créneaux et le nombre de convives que le créateur peut emmener (on recommande 2-3 : une table animée donne une vidéo plus naturelle)') +
+    dash('Un créateur local voit vos créneaux et réserve. Vous lui offrez le repas') +
+    dash('Il vient, filme, et publie la vidéo sur son compte — vue par son audience : vos voisins. Elle reste en ligne au moins 12 mois') +
+    spacer() +
+    p('On travaille surtout avec des petits créateurs locaux. Pourquoi c\'est mieux que les gros :') +
+    dash('leur audience habite à côté de chez vous = de vrais clients potentiels') +
+    dash('on croit un petit créateur comme un conseil d\'ami, pas comme une pub') +
+    dash('quand plusieurs créateurs du coin parlent de vous, le quartier se dit « tout le monde y va, sauf moi »') +
+    dash('et c\'est du contenu pro, gratuit : pas de photographe ni de vidéaste à payer') +
+    spacer() +
+    p('Le tout pour le prix d\'un repas — pas 2 000€ la vidéo d\'un gros influenceur, pas 600€/mois une agence, pas de Google Ads.') +
+    p('Tout se passe en ligne, à votre rythme, et personne ne vous appelle.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Accéder à mon espace', `${APP_URL}/restaurant/dashboard`, false)
+  await sendToUser(resto.email, 'Bienvenue chez 2960 Agency — comment ça marche vraiment', html)
+}
+
+// R0 — Offre pré-remplie, mettre en ligne (H+1, marketing)
 export async function sendRestoR0(resto: { restoName: string; email: string }) {
-  const body = p(`Votre compte est actif, et vos 3 collaborations offertes vous attendent (à utiliser sous 30 jours).`) +
-    p(`Pour les activer, une seule étape : publier votre offre. On l'a pré-remplie pour vous — il vous reste à vérifier et à cliquer sur Publier.`) +
+  const body = p(`Vous n'avez pas eu le temps de remplir votre offre ? On s'en est chargé pour vous. Tout est prêt — il ne reste qu'un geste pour la rendre visible aux créateurs.`) +
+    p('Ce qu\'on a rempli à votre place :') +
+    dash('vos meilleures photos, récupérées en ligne (à remplacer si vous préférez les vôtres)') +
+    dash('vos horaires d\'ouverture habituels, transformés en créneaux') +
+    dash('1 seul créateur par service : pas d\'invasion en cuisine') +
+    dash('l\'acceptation automatique (modifiable en 1 clic)') +
+    dash('aucune prime : vous en ajouterez une plus tard, si vous voulez') +
     spacer() +
-    pMuted('Une fois en ligne, des créateurs vérifiés peuvent réserver et venir créer du contenu chez vous.')
-  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Publier mon offre (2 min)', `${APP_URL}/restaurant/dashboard`)
-  await sendToUser(resto.email, 'Bienvenue sur 2960 — publiez votre 1ère offre en 2 min', html)
+    pMuted('Le bouton vous emmène à votre espace : là, un simple toggle « offre visible » met votre offre en ligne. Aucun argent ne sort — vous offrez un repas, rien d\'autre. Et vous la remettez en pause quand vous voulez.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Accéder à mon espace', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'Votre offre est prête — il reste à la rendre visible', html)
 }
 
-// RJ1 — Relance publication (J+1)
+// RJ1 — Rappel mise en ligne (J+1, marketing)
 export async function sendRestoDripRJ1(resto: { restoName: string; email: string }) {
-  const body = p(`Votre compte est prêt, mais votre offre n'est pas encore en ligne — vos 3 collaborations offertes restent en pause tant qu'elle ne l'est pas.`) +
-    p('L\'offre est déjà pré-remplie. 2 minutes suffisent :')
-  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Mettre mon offre en ligne', `${APP_URL}/restaurant/dashboard`)
-  await sendToUser(resto.email, 'Vos 3 collaborations offertes ne tournent pas encore', html)
+  const body = p(`Votre offre est prête — on l'a remplie pour vous : photos, horaires, et des réglages prudents (1 seul créateur par service, prime désactivée). Il manque juste votre clic.`) +
+    p('Tant qu\'elle n\'est pas en ligne, vos 3 collaborations offertes restent en pause — et elles ne tournent pas pour votre visibilité.') +
+    spacer() +
+    pMuted('(Vous la remettez en pause quand vous voulez. Rien n\'est figé.)')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Accéder à mon espace', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'Vos 3 collaborations offertes sont en pause', html)
 }
 
-// RJ3 — Pourquoi ça vaut le coup (J+3)
+// RJ3 — Pourquoi ça vaut le coup (J+3, marketing)
 export async function sendRestoDripRJ3(resto: { restoName: string; email: string }) {
-  const body = p('Ce que des créateurs vérifiés font concrètement pour vous :') +
-    dash('vos plats apparaissent dans les recherches TikTok de votre quartier et de votre cuisine, sans que vous ayez de compte à gérer') +
-    dash('du contenu authentique produit pour vous, que vous pouvez réutiliser (licence d\'usage)') +
-    dash('chaque collaboration vous montre quel angle et quel plat résonnent le mieux') +
+  const body = p('Aujourd\'hui, près de 2 recherches de restaurant sur 3 se font sur les réseaux sociaux. Vos futurs clients ne lisent plus un avis — ils veulent voir le plat, l\'ambiance, le lieu, dans une vraie vidéo. Là où vous n\'apparaissez pas, c\'est un autre qu\'ils trouvent.') +
+    p('Ce que des créateurs vérifiés construisent pour vous, concrètement :') +
+    dash('vos plats apparaissent dans les recherches liées à votre quartier et votre cuisine, sans que vous ayez de compte à gérer') +
+    dash('du contenu authentique produit pour vous, réutilisable sur vos canaux (licence d\'usage)') +
+    dash('une présence qui se construit dans la durée : il faut en moyenne plusieurs rencontres avec un lieu avant qu\'un client s\'y décide — chaque vidéo en est une') +
     spacer() +
-    p('Ce n\'est pas un coup unique : c\'est une présence qui se construit dans la durée. Et vos 3 premières collaborations sont offertes.')
-  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Publier mon offre', `${APP_URL}/restaurant/dashboard`)
-  await sendToUser(resto.email, 'Comment 2960 travaille pour votre visibilité', html)
+    p('Votre offre est déjà prête, vos 3 premières collaborations sont offertes.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Accéder à mon espace', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'Vos clients vous cherchent sur les réseaux', html)
 }
 
-// RJ6 — Dernier rappel (J+6)
-export async function sendRestoDripRJ6(resto: { restoName: string; email: string }) {
-  const body = p('Vos 3 collaborations offertes vous attendent toujours. Il suffit de publier votre offre (déjà pré-remplie) pour les activer — avant la fin de votre fenêtre de 30 jours.') +
+// RJ6 — Dernier rappel (J+6, marketing)
+export async function sendRestoDripRJ6(resto: { restoName: string; email: string; trialEndDate?: string }) {
+  const dateLine = resto.trialEndDate ? `, le ${resto.trialEndDate}` : ''
+  const body = p(`Vous vous êtes inscrit, et tout est prêt — mais votre offre n'est pas encore en ligne. Le seul effet, c'est que rien ne tourne pour vous : pas de créateur qui réserve, pas de vidéo qui se publie, pas de présence qui se construit. Et vos 3 collaborations offertes ont une fin de fenêtre${dateLine}.`) +
+    p('La bonne nouvelle : il n\'y a rien à préparer. Votre offre est déjà rédigée et réglée. Un clic la met en ligne — vous la remettez en pause quand vous voulez.') +
     spacer() +
-    pMuted('Une question avant de publier ? Répondez à ce mail.')
-  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Activer mes collaborations', `${APP_URL}/restaurant/dashboard`)
-  await sendToUser(resto.email, 'On garde vos 3 collaborations offertes au chaud', html)
+    pMuted('Une question avant de la mettre en ligne ? Répondez à ce mail, on vous répond.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Accéder à mon espace', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'On garde vos 3 collaborations au chaud', html)
+}
+
+// RP2 — Quelques réglages (J+2 sans résa, marketing)
+export async function sendRestoRP2(resto: { restoName: string; email: string; isManual: boolean; hasPrime: boolean }) {
+  let items = dash('remplacez 1-2 photos par vos propres clichés de plats : les vôtres donnent plus envie que celles trouvées en ligne') +
+    dash('ouvrez quelques créneaux en soirée et le week-end : ce sont les plus demandés')
+  if (resto.isManual) items += dash('repassez en acceptation automatique : les créateurs réservent là où c\'est instantané')
+  else items += dash('gardez l\'acceptation automatique active : les créateurs réservent là où c\'est instantané')
+  if (!resto.hasPrime) items += dash('ajoutez une prime de viralité : les créateurs candidatent en priorité sur les offres qui en proposent')
+  const body = p('Votre offre est en ligne, et pas encore de réservation. C\'est presque toujours une question de réglage — pas de restaurant. Voici ce qui fait venir les créateurs plus vite :') + items
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Ajuster mon offre', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'Quelques réglages pour vos premières réservations', html)
+}
+
+// RP5 — Prime + créneaux (J+5 sans résa, marketing)
+export async function sendRestoRP5(resto: { restoName: string; email: string; hasPrime: boolean }) {
+  const primeBlock = !resto.hasPrime
+    ? p(`${hl('1. Ajoutez une prime de viralité.')} C'est une assurance-performance inversée : vous ne payez que si une vidéo explose vraiment. Les créateurs filtrent les offres avec prime en premier — sans, la vôtre passe souvent inaperçue. On conseille de démarrer à 50 000 vues → 200€ : un seuil assez haut pour ne se déclencher que sur une vraie performance.`)
+    : ''
+  const body = p('Toujours pas de réservation. Deux leviers règlent ça la plupart du temps :') +
+    primeBlock +
+    p(`${hl('2. Ouvrez 2-3 créneaux de plus.')} Soirées, week-end, et augmentez le nombre de créateurs par semaine. Plus de fenêtres ouvertes, plus de chances qu'un créateur tombe sur la bonne.`) +
+    spacer() +
+    pMuted('Une question pour régler ça ? Répondez à ce mail.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Ajuster mon offre', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, '2 réglages pour débloquer vos réservations', html)
+}
+
+// R-EMPTY3 — Toujours 0 résa à J+10 (marketing)
+export async function sendRestoEmpty3(resto: { restoName: string; email: string; isManual: boolean; hasPrime: boolean }) {
+  let items = ''
+  if (!resto.hasPrime) items += dash('une prime de viralité (on conseille 50 000 vues → 200€) : les créateurs réservent en priorité les offres qui en proposent, et à ce seuil elle ne se déclenche que sur une vraie performance — vous ne payez donc que si une vidéo cartonne')
+  if (resto.isManual) items += dash('l\'acceptation automatique : les créateurs vont là où c\'est instantané. Le filtre existe déjà en amont (2960 Agency vérifie chaque créateur) — l\'auto ne baisse pas votre exigence, elle vous évite juste de rater une demande')
+  if (!items) items = dash('ouvrez 2-3 créneaux de plus en soirée et le week-end, et augmentez le nombre de créateurs par semaine')
+  const body = p('Votre offre est en ligne depuis quelques jours, et n\'a pas encore reçu de réservation. Ce n\'est pas un mauvais signe : c\'est presque toujours une question de réglage, pas de restaurant. Et c\'est exactement ce qui se corrige en 1 minute.') +
+    p('Les leviers qui débloquent les premières réservations :') + items
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Ajuster mon offre', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'Réglons ce qui empêche vos réservations', html)
+}
+
+// R-WB — Offre en pause, pas revenue (21j, marketing froid)
+export async function sendRestoWB(resto: { restoName: string; email: string }) {
+  const body = p('Votre offre est en pause, et vos collaborations offertes ne sont pas encore utilisées. Depuis, de nouveaux créateurs vérifiés ont rejoint 2960 Agency — il y a sans doute un bon profil pour vous aujourd\'hui qui n\'existait pas la dernière fois.') +
+    p('La remettre en ligne, c\'est un clic. Vous la remettez en pause quand vous voulez.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Remettre mon offre en ligne', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'Votre offre est en pause — on a du nouveau', html)
 }
 
 // R-RESA — Un créateur a réservé (transactionnel)
-export async function sendRestoResa(data: {
-  restoName: string; email: string;
-  creatorName: string; date: string; heure: string; numPeople: number;
-}) {
+export async function sendRestoResa(data: { restoName: string; email: string; creatorName: string; date: string; heure: string; numPeople: number }) {
   const body = p(`${hl(data.creatorName)} a réservé pour ${data.date} à ${data.heure} — ${data.numPeople} personne${data.numPeople > 1 ? 's' : ''}.`) +
-    p('À préparer : un bon accueil, et toute information utile à signaler (allergies, plats indisponibles, table filmable). Le créateur publiera sa vidéo sous 5 jours.')
+    p('Tout ce qu\'il y a à faire : un bon accueil, comme pour un client. Signalez ce qui est utile (allergies, plats indisponibles, une table qui filme bien). Le créateur publiera sa vidéo sous 5 jours après la venue.')
   const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Voir la réservation', `${APP_URL}/restaurant/dashboard?tab=collabs`, false)
   await sendToUser(data.email, `Nouvelle réservation : ${data.creatorName} vient le ${data.date}`, html)
 }
 
-// R-NUDGE-AUTO — Passez en auto (résa en attente >24h)
+// R-NUDGE-AUTO — Résa en attente >24h (marketing)
 export async function sendRestoNudgeAuto(data: { restoName: string; email: string; creatorName: string }) {
-  const body = p(`${hl(data.creatorName)} attend votre validation depuis hier. Les créateurs sérieux passent vite à l'offre suivante s'ils n'ont pas de réponse.`) +
-    p('L\'acceptation automatique vous évite ça : les créateurs 2960 sont déjà vérifiés en amont, vous gagnez du temps, et vous revenez en manuel en 1 clic quand vous le souhaitez.')
+  const body = p(`${hl(data.creatorName)} attend votre validation depuis hier. Et un créateur sans réponse passe vite à l'offre suivante — vous risquez de le perdre pour rien.`) +
+    p('L\'acceptation automatique évite exactement ça : vous ne ratez plus une demande pendant le coup de feu. Et ça ne baisse pas votre exigence — les créateurs 2960 Agency sont déjà vérifiés en amont, et vous revenez en manuel en 1 clic quand vous voulez.')
   const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Activer l\'acceptation auto', `${APP_URL}/restaurant/dashboard`, false)
   await sendToUser(data.email, 'Une réservation attend votre réponse depuis 24h', html)
 }
 
-// R-VIDEO — Vidéo en ligne + licence (transactionnel)
-export async function sendRestoVideo(data: {
-  restoName: string; email: string;
-  creatorName: string; postLink: string;
-}) {
-  const body = p(`${hl(data.creatorName)} a publié votre vidéo : <a href="${data.postLink}" style="color:#FF6339;text-decoration:underline;">voir la vidéo</a>. Elle restera en ligne au moins 12 mois — votre repas offert continue de travailler bien après la collaboration.`) +
-    p('Vous voulez l\'utiliser sur vos propres canaux (site, réseaux, écrans en salle, publicité) ? La licence d\'usage vous en donne le droit :') +
+// R-ANNUL — Annulation (transactionnel)
+export async function sendRestoAnnul(data: { restoName: string; email: string; date: string }) {
+  const body = p(`La réservation du ${data.date} vient d'être annulée. C'est rare — et vous n'avez rien à faire : votre créneau est déjà de nouveau libre, un autre créateur peut le réserver.`)
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Voir mes créneaux', `${APP_URL}/restaurant/dashboard?tab=collabs`, false)
+  await sendToUser(data.email, 'Réservation annulée — votre créneau est de nouveau libre', html)
+}
+
+// R-NOSHOW — Créateur non présenté (transactionnel)
+export async function sendRestoNoshow(data: { restoName: string; email: string; creatorName: string; date: string }) {
+  const body = p(`Vous nous avez signalé que ${hl(data.creatorName)} ne s'est pas présenté le ${data.date}. C'est rare, et ça ne doit rien vous coûter — voici ce qu'on a fait, automatiquement :`) +
+    dash('votre créneau est de nouveau libre, un autre créateur peut le réserver') +
+    dash('la collaboration vous est recréditée : elle ne compte pas dans vos 3 offertes') +
+    spacer() +
+    p('Et le créateur absent voit sa fiabilité baisser sur 2960 Agency. C\'est la contrepartie de la vérification qu\'on impose à chaque collaboration : ici, ne pas venir a un coût. C\'est ce qui rend la plateforme fiable pour vous.')
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Voir mes créneaux', `${APP_URL}/restaurant/dashboard?tab=collabs`, false)
+  await sendToUser(data.email, `Votre créneau du ${data.date} est de nouveau libre`, html)
+}
+
+// R-VIDEO — Vidéo en ligne + licence (transactionnel + upsell)
+export async function sendRestoVideo(data: { restoName: string; email: string; creatorName: string; postLink: string }) {
+  const body = p(`${hl(data.creatorName)} vient de publier votre vidéo : <a href="${data.postLink}" style="color:#FF6339;text-decoration:underline;">voir la vidéo</a>. Elle restera en ligne au moins 12 mois — votre repas offert continue de travailler pour votre visibilité bien après la venue.`) +
+    p('Vous voulez aller plus loin et l\'utiliser sur vos propres canaux — site, réseaux, écrans en salle, publicité ? Une vidéo authentique tournée chez vous, sans avoir payé de vidéaste. La licence d\'usage vous en donne le droit :') +
     dash('150€ pour 6 mois') +
     dash('200€ pour 12 mois')
   const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Obtenir la licence d\'usage', `${APP_URL}/restaurant/dashboard`, false)
-  await sendToUser(data.email, 'Votre vidéo est en ligne 🎬 (et elle peut travailler plus longtemps)', html)
+  await sendToUser(data.email, 'Votre vidéo est en ligne 🎬', html)
 }
 
-// RP2 — Quelques réglages (J+2 sans résa)
-export async function sendRestoRP2(resto: { restoName: string; email: string; isManual: boolean; hasPrime: boolean }) {
-  let items = dash('ajoutez 1-2 photos appétissantes de vos plats (c\'est ce qui déclenche l\'envie)') +
-    dash('ouvrez quelques créneaux en soirée et le week-end (les plus demandés)')
-  if (resto.isManual) items += dash('passez en acceptation automatique : les créateurs réservent là où c\'est instantané')
-  if (!resto.hasPrime) items += dash('ajoutez une prime de viralité : les créateurs sont plus attirés par les offres qui en proposent')
-  const body = p('Votre offre est en ligne — voici ce qui fait venir les créateurs plus vite :') + items
-  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Ajuster mon offre', `${APP_URL}/restaurant/dashboard`)
-  await sendToUser(resto.email, 'Quelques réglages pour attirer les premiers créateurs', html)
+// R-RETARD — Vidéo en attente après 5 jours (transactionnel)
+export async function sendRestoRetard(data: { restoName: string; email: string; creatorName: string; date: string }) {
+  const body = p(`${hl(data.creatorName)} est bien venu le ${data.date}, mais sa vidéo n'est pas encore publiée. Vous n'avez rien à faire : nous relançons le créateur automatiquement pour qu'il poste son lien.`) +
+    p('C\'est précisément ce que 2960 Agency vérifie à votre place. Une collaboration n\'est validée que lorsque la vidéo est réellement en ligne — pas avant. Et si elle ne l\'est pas dans un délai raisonnable, la collaboration vous est recréditée : vous ne perdez rien.')
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Voir le statut de la collaboration', `${APP_URL}/restaurant/dashboard?tab=collabs`, false)
+  await sendToUser(data.email, `Votre vidéo chez ${data.restoName} : on s'en occupe`, html)
 }
 
-// RP5 — Prime + créneaux (J+5 sans résa)
-export async function sendRestoRP5(resto: { restoName: string; email: string }) {
-  const body = p('Vous n\'avez pas encore reçu de réservation. Deux leviers règlent ça la plupart du temps :') +
-    p(`<strong style="color:#1A1A1A;">1. Ajoutez une prime de viralité.</strong> Les créateurs candidatent en priorité sur les offres qui en proposent. On conseille de démarrer à 50 000 vues → 200€ : un seuil assez haut pour ne se déclencher que si une vidéo performe vraiment.`) +
-    p(`<strong style="color:#1A1A1A;">2. Ouvrez 2-3 créneaux de plus</strong> (soirées, week-end) et augmentez le nombre de créateurs par semaine.`) +
-    spacer() +
-    pMuted('Une question pour configurer ? Répondez à ce mail.')
-  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Ajuster mon offre', `${APP_URL}/restaurant/dashboard`)
-  await sendToUser(resto.email, '2 réglages pour vos premières réservations', html)
+// R-RETRAIT — Demande de retrait accusée (transactionnel)
+export async function sendRestoRetrait(data: { restoName: string; email: string; creatorName: string }) {
+  const body = p(`Nous avons bien reçu votre demande concernant la vidéo de ${hl(data.creatorName)}. Nous l'examinons selon nos conditions, et nous revenons vers vous.`) +
+    p('Si le retrait est accordé, la collaboration n\'est pas comptée dans vos 3 offertes — elle vous est recréditée.')
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Suivre ma demande', `${APP_URL}/restaurant/dashboard?tab=collabs`, false)
+  await sendToUser(data.email, 'Votre demande de retrait a bien été reçue', html)
 }
 
-// R-WB — Resto inactif (J+21)
-export async function sendRestoWB(resto: { restoName: string; email: string }) {
-  const body = p('Votre offre est en pause et vos collaborations offertes ne sont pas encore utilisées. Le catalogue créateurs a évolué depuis votre inscription — il y a sans doute un bon profil pour vous aujourd\'hui.')
-  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Réactiver mon offre', `${APP_URL}/restaurant/dashboard`)
-  await sendToUser(resto.email, 'Vos collaborations offertes vous attendent toujours', html)
+// R-PRIME — Prime de viralité déclenchée (transactionnel)
+export async function sendRestoPrime(data: { restoName: string; email: string; creatorName: string; seuil: string; montant: number }) {
+  const body = p(`Bonne nouvelle : la vidéo de ${hl(data.creatorName)} a atteint le seuil que vous aviez fixé (${data.seuil} vues). C'est exactement le scénario que vous aviez choisi de récompenser — une vidéo qui performe vraiment.`) +
+    p('Le détail, en toute transparence :') +
+    dash(`Montant que vous aviez fixé : ${data.montant}€`) +
+    dash('Paiement sécurisé via Stripe') +
+    dash('Vous disposez de 7 jours pour vérifier avant tout prélèvement')
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Voir et valider la prime', `${APP_URL}/restaurant/dashboard?tab=collabs`, false)
+  await sendToUser(data.email, 'Une de vos vidéos a atteint votre seuil de prime', html)
 }
 
-// R-CONV — Essai → payant (3e collab livrée)
+// R-CONV — Essai → payant (3e collab livrée, marketing)
 export async function sendRestoConv(resto: { restoName: string; email: string; videoCount: number }) {
-  const body = p(`Vos 3 collaborations offertes sont terminées : ${hl(`${resto.videoCount} vidéos`)} publiées, en ligne au moins 12 mois, qui travaillent pour votre visibilité.`) +
-    p('Pour continuer sans interruption, voici les formules :') +
-    dash('Active (69€/mois) : 4 collaborations incluses') +
-    dash('Pro (119€/mois) : collaborations illimitées + invitations directes + directives aux créateurs') +
+  const body = p(`Vos 3 collaborations offertes sont terminées. Ce que vous avez maintenant, et qui ne disparaît pas : ${hl(`${resto.videoCount} vidéos`)} publiées sur de vrais comptes, en ligne au moins 12 mois, qui vous rendent visible là où vos clients cherchent. C'est un actif — pas une dépense passée.`) +
+    p('Mises bout à bout, ces vidéos auraient coûté une fortune ailleurs : un créateur facturé à la vidéo, une agence à 600€/mois, un vidéaste pour de l\'UGC. Ici, c\'était 3 repas.') +
+    p('Pour continuer sans coupure :') +
+    dash('Active · 69€/mois · 4 collaborations incluses chaque mois') +
+    dash('Pro · 119€/mois · collaborations illimitées + invitations directes + vos directives') +
+    dash('Pro+Assist · sur demande · on gère tout à votre place') +
     spacer() +
-    pMuted('Pas prêt ? Vos réservations sont simplement en pause — aucun débit, rien de caché.')
+    pMuted('Pas prêt à choisir ? Vos réservations restent simplement en pause — aucun débit, rien de caché, rien ne part sans votre clic.')
   const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Choisir ma formule', `${APP_URL}/restaurant/dashboard?tab=settings`)
-  await sendToUser(resto.email, `Vos 3 collaborations offertes ont produit ${resto.videoCount} vidéos`, html)
+  await sendToUser(resto.email, `Vos 3 collaborations, ${resto.videoCount} vidéos en ligne`, html)
 }
 
-// R-ANNUL — Annulation (transactionnel)
-export async function sendRestoAnnul(data: { restoName: string; email: string; date: string }) {
-  const body = p(`La réservation du ${data.date} vient d'être annulée. Votre créneau est de nouveau libre — un autre créateur peut le réserver.`)
-  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Voir mes créneaux', `${APP_URL}/restaurant/dashboard?tab=collabs`, false)
-  await sendToUser(data.email, 'Réservation annulée — votre créneau est de nouveau libre', html)
+// R-CONV-2 — Rappel conversion (J+3 après R-CONV, marketing)
+export async function sendRestoConv2(resto: { restoName: string; email: string }) {
+  const body = p('Petit rappel, sans pression : vos contenus sont en ligne au moins 12 mois. Vos réservations sont simplement en pause — aucun débit, rien de caché.') +
+    p('Quand vous voulez reprendre, vous avez deux portes :') +
+    dash('un abonnement (Active 69€/mois : 4 collaborations · Pro 119€/mois : illimité + invitations directes + vos directives)') +
+    dash('ou à la collaboration, sans abonnement : 35€ par collaboration, sans engagement')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Choisir comment continuer', `${APP_URL}/restaurant/dashboard?tab=settings`)
+  await sendToUser(resto.email, 'Vos réservations sont en pause — rien ne se débite', html)
+}
+
+// R-FALLBACK — Réveil Sans Abo (30j inactivité, marketing froid)
+export async function sendRestoFallback(resto: { restoName: string; email: string }) {
+  const body = p('Vous n\'avez pas de collaboration en cours. Depuis votre dernière, de nouveaux créateurs vérifiés ont rejoint 2960 Agency — il y a sans doute un bon profil pour vous aujourd\'hui.') +
+    p('Vous pouvez relancer une collaboration à l\'unité (35€), sans engagement, quand le moment vous va.')
+  const html = buildEmail(`Bonjour ${resto.restoName},`, body, 'Lancer une collaboration', `${APP_URL}/restaurant/dashboard`)
+  await sendToUser(resto.email, 'Une nouvelle collaboration quand vous voulez', html)
+}
+
+// R-PAY-ONB — Bienvenue formule payante (transactionnel)
+export async function sendRestoPayOnb(data: { restoName: string; email: string; plan: string }) {
+  const planDetails = data.plan === 'pro'
+    ? 'des collaborations illimitées, des invitations directes aux créateurs, et la possibilité de leur donner vos directives — l\'angle exact que vous voulez mettre en avant'
+    : '4 collaborations par mois, et 14€ par collaboration au-delà'
+  const body = p(`Votre formule ${hl(data.plan === 'pro' ? 'Pro' : 'Active')} est active. Ce qu'elle vous donne :`) +
+    dash(planDetails) +
+    spacer() +
+    p('Le meilleur moyen de rentabiliser dès aujourd\'hui : lancez votre prochaine collaboration tout de suite, tant que vous y êtes.')
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Lancer ma prochaine collaboration', `${APP_URL}/restaurant/dashboard`, false)
+  await sendToUser(data.email, 'C\'est parti — voici ce que votre formule débloque', html)
+}
+
+// R-PAY-WAKE — Payé mais inactif (transactionnel)
+export async function sendRestoPayWake(data: { restoName: string; email: string }) {
+  const body = p('Votre abonnement est actif, mais vous n\'avez pas lancé de collaboration ce mois-ci. C\'est le seul cas où votre formule vous coûte sans rien construire — autant la faire travailler.') +
+    p('Choisissez un créateur, ouvrez un créneau, et c\'est reparti.')
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Lancer une collaboration', `${APP_URL}/restaurant/dashboard`, false)
+  await sendToUser(data.email, 'Votre formule tourne — vos collaborations, pas encore', html)
+}
+
+// R-PAY-RENEW — Preuve de valeur avant renouvellement (transactionnel)
+export async function sendRestoPayRenew(data: { restoName: string; email: string; videoCount: number; period: string }) {
+  const body = p(`Sur ${data.period}, vos collaborations ont produit ${hl(`${data.videoCount} vidéos`)}, toutes en ligne au moins 12 mois. Elles continuent de travailler pour votre visibilité, bien après chaque repas offert — et elles s'ajoutent à celles d'avant.`) +
+    p('Votre formule se renouvelle bientôt. Rien à faire pour continuer.')
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Voir mes vidéos', `${APP_URL}/restaurant/dashboard?tab=collabs`, false)
+  await sendToUser(data.email, `Ce mois-ci, vos collaborations en bref`, html)
+}
+
+// R-PAY-CHURN — Sortie digne (transactionnel)
+export async function sendRestoPayChurn(data: { restoName: string; email: string }) {
+  const body = p('Votre abonnement prend fin. Ce qui ne change pas : les vidéos déjà publiées restent en ligne au moins 12 mois, et continuent de travailler pour vous. Ce que vous avez construit vous reste.') +
+    p('Vous pouvez reprendre quand vous voulez — à l\'abonnement, ou à la collaboration (35€). Vos données et votre historique sont conservés, vous repartez d\'où vous vous êtes arrêté.')
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Revenir quand je veux', `${APP_URL}/restaurant/dashboard`, false)
+  await sendToUser(data.email, 'Votre formule prend fin — ce que vous gardez', html)
+}
+
+// R-PAUSE — Confirmation mise en pause (transactionnel)
+export async function sendRestoPause(data: { restoName: string; email: string; trialEndDate?: string }) {
+  const dateLine = data.trialEndDate ? ` jusqu'au ${data.trialEndDate}` : ''
+  const body = p('C\'est fait : votre offre est en pause. Les créateurs ne peuvent plus réserver tant que vous ne l\'avez pas remise en ligne. Aucun débit, rien à gérer.') +
+    p(`Une chose à noter : vos 3 collaborations offertes restent utilisables${dateLine}. Vous remettez votre offre en ligne quand le moment vous convient.`)
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Remettre mon offre en ligne', `${APP_URL}/restaurant/dashboard`, false)
+  await sendToUser(data.email, 'Votre offre est en pause', html)
+}
+
+// R-HORSZONE — Hors zone (transactionnel)
+export async function sendRestoHorsZone(data: { restoName: string; email: string; zone: string }) {
+  const body = p(`Merci de votre inscription. On préfère être franc avec vous : 2960 Agency démarre sur Paris et l'Île-de-France, et on ouvre de nouvelles zones progressivement.`) +
+    p(`${data.zone} n'est pas encore couverte. Vous mettre en avant maintenant ne servirait à rien — aucun créateur 2960 Agency n'y est encore actif, et on ne veut pas vous faire une promesse qu'on ne peut pas tenir. Vous êtes donc sur notre liste prioritaire : dès qu'on ouvre près de chez vous, vous serez parmi les tout premiers prévenus.`)
+  const html = buildEmail(`Bonjour ${data.restoName},`, body, 'Être prévenu en priorité', `${APP_URL}/restaurant/dashboard`, false)
+  await sendToUser(data.email, '2960 Agency arrive bientôt dans votre zone', html)
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -598,7 +752,7 @@ export async function sendRestoDripJ1(resto: { ownerName: string; email: string 
 export async function sendRestoDripJ3(resto: { ownerName: string; email: string }) { await sendRestoDripRJ3({ restoName: resto.ownerName, email: resto.email }) }
 export async function sendRestoDripJ6(resto: { ownerName: string; email: string }) { await sendRestoDripRJ6({ restoName: resto.ownerName, email: resto.email }) }
 export async function sendRestoPublishedNoBookingsJ2(resto: { ownerName: string; email: string }) { await sendRestoRP2({ restoName: resto.ownerName, email: resto.email, isManual: false, hasPrime: false }) }
-export async function sendRestoPublishedNoBookingsJ5(resto: { ownerName: string; email: string }) { await sendRestoRP5({ restoName: resto.ownerName, email: resto.email }) }
+export async function sendRestoPublishedNoBookingsJ5(resto: { ownerName: string; email: string }) { await sendRestoRP5({ restoName: resto.ownerName, email: resto.email, hasPrime: false }) }
 export async function sendCreatorDripC2(creator: { firstName: string; email: string }) { await sendCreatorC1(creator) }
 export async function sendCreatorDripC3(creator: { firstName: string; email: string }) { await sendCreatorC1(creator) }
 export async function sendCreatorDripC4(creator: { firstName: string; email: string }) { await sendCreatorC1(creator) }

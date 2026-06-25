@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import sql from '@/lib/db'
-import { sendBusinessNotification } from '@/lib/email'
+import { sendBusinessNotification, sendRestoExplainer } from '@/lib/email'
 import { hashPassword } from '@/lib/auth'
 import { track } from '@/lib/track'
 
@@ -117,6 +117,9 @@ export async function POST(req: NextRequest) {
     `
 
     await sendBusinessNotification(row)
+
+    // C.0 — Send explainer email immediately at candidature
+    sendRestoExplainer({ restoName: d.bizName.trim(), email: d.email.trim() }).catch(e => console.error('C.0 explainer email error:', e))
 
     if (validatedReferralCode) {
       const referrer = await sql`SELECT id FROM creators WHERE ambassador_code = ${validatedReferralCode}`
